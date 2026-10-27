@@ -1,0 +1,449 @@
+﻿GIAPHA - MÔ TẢ DỮ LIỆU MẪU
+============================================================================================
+File dữ liệu : GiaPha_DuLieuMau.sql
+Chạy sau     : GiaPha_SQLServer.sql (file tạo bảng). Chạy 1 lần trên CSDL vừa tạo mới.
+Mục đích     : có sẵn dữ liệu đa dạng để dựng và thử các màn hình, kể cả các tình huống khó.
+
+============================================================================================
+1. CÁCH CHẠY
+============================================================================================
+
+1) Chạy GiaPha_SQLServer.sql (tạo CSDL GiaPha và 12 bảng).
+2) Chạy GiaPha_DuLieuMau.sql. Chạy lại lần nữa sẽ báo trùng khóa; muốn làm lại thì chạy lại từ bước 1.
+3) Cuối file có câu SELECT đếm số dòng từng bảng, đối chiếu với mục 2 bên dưới.
+
+Lưu ý:
+- File lưu UTF-8 có BOM. Nếu SSMS hiện sai tiếng Việt: File > Open > chọn mã hóa "Unicode (UTF-8)".
+- Mã còn hạn (KT7H29QX, PH2Q7N4D, LE8V3J5H) và mã OTP đầu tiên tính theo GIỜ LÚC CHẠY,
+  chỉ có hiệu lực 5 phút. Cần thử lại thì tạo mã mới hoặc sửa NgayTao/NgayHetHan trong bảng MaCode.
+- Mọi ID được gán cứng (IDENTITY_INSERT) để dễ đọc và dễ đối chiếu.
+
+============================================================================================
+2. SỐ DÒNG TỪNG BẢNG
+============================================================================================
+
+TaiKhoan                 30
+MaXacThuc                 3
+KhongGian                 4
+OThanhVien               84
+ThanVienTrongKGian       20
+QuanHeChaMe             101
+QHeHonNhan               30
+Avatar                   11
+CuocDoi                   5
+BinhLuan                  8
+ThanhTuu                 10
+MaCode                    7
+
+Số Ô theo không gian : Gia phả họ Nguyễn = 31, Gia phả họ Trần = 7, Dòng họ Lê ở Đà Nẵng = 39, Gia phả họ Phạm = 7
+Quan hệ bị ẩn (HienThiLienKet = 0): 4 dòng QuanHeChaMe (2 nhánh tách).
+
+============================================================================================
+3. TÀI KHOẢN (30)
+============================================================================================
+
+Đăng nhập bằng số điện thoại + OTP (OTP là phần app/hardcode, không nằm trong CSDL mẫu).
+SĐT lưu dạng số liền, không có dấu cách. Cột LoaiDangNhap = SDT_OTP trừ khi ghi chú khác.
+
+ID  Tên hiển thị             SĐT          Loại      Trạng thái Ghi chú
+1   Nguyễn Thị Lan           0905222444   Thường    Hoạt động  Admin họ Nguyễn
+2   Nguyễn Văn Nam           0912111222   Thường    Hoạt động  Quản lý họ Nguyễn
+3   Nguyễn Minh Khôi         0912345678   Thường    Hoạt động  4 không gian, 4 vai trò khác nhau (xem mục 6)
+4   Thảo Nguyễn              0944321654   Thường    Hoạt động  Tên hiển thị khác tên trong Ô (Nguyễn Thị Thảo)
+5   Lê Thị Hạnh              0977123456   Thường    Hoạt động  Admin Dòng họ Lê; Thành viên họ Nguyễn
+6   Trần Thị Mai             0922888999   Thường    Hoạt động  Thành viên họ Nguyễn (cụ bà)
+7   Chú Bình                 0987654321   Thường    Hoạt động  Thành viên hờ họ Nguyễn, chưa có Ô
+8   Phạm Thị Hương           0933456789   Thường    Hoạt động  Admin họ Phạm; Khách tạm họ Nguyễn
+9   Phan Thị Kim Anh         0988111333   Thường    Hoạt động  Khách tạm đã rời họ Nguyễn
+10  Võ Văn Tâm               0966777888   Thường    Đã khóa    Bị khóa tài khoản; bị chặn khỏi họ Nguyễn
+11  Quản trị hệ thống        0901000001   AdminApp  Hoạt động  AdminApp, không thuộc không gian nào
+12  Lê Văn Hiếu              0914555666   Thường    Hoạt động  Thành viên Dòng họ Lê
+13  Hồ Thị Thu               0915666777   Thường    Hoạt động  Thành viên hờ Dòng họ Lê (Ô cùng tên chưa được gán)
+14  Phan Đức Lộc             0916777888   Thường    Hoạt động  Khách tạm Dòng họ Lê
+15  Bình Mai                 0917888999   Thường    Hoạt động  MẬT KHẨU Test@1234 (bcrypt); Thành viên Dòng họ Lê
+16  Đinh Công Minh           0920100001   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+17  Bùi Thị Thanh Hà         0920100038   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+18  Hoàng Văn Long           0920100075   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+19  Dương Thị Mỹ Linh        0920100112   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+20  Lý Quốc Hưng             0920100149   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+21  Tô Ngọc Hân              0920100186   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+22  Huỳnh Gia Bảo            0920100223   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+23  Mai Thanh Tùng           0920100260   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+24  Cao Thị Bích Ngọc        0920100297   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+25  Đoàn Minh Trí            0920100334   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+26  Trịnh Hải Yến            0920100371   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+27  Vương Đình Khoa          0920100408   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+28  Lâm Thị Kiều Oanh        0920100445   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+29  Châu Anh Tuấn            0920100482   Thường    Hoạt động  Tài khoản nền, chưa tham gia không gian nào
+30  Phùng Thế Vinh           0920100519   Thường    Đã khóa    Tài khoản nền, chưa tham gia không gian nào (đã khóa)
+
+15 tài khoản nền (ID 16-30) giúp GD-21 đủ 2 trang (20 + 10 dòng) và có ví dụ "chưa tham gia không gian nào".
+
+============================================================================================
+4. KHÔNG GIAN VÀ THÀNH VIÊN
+============================================================================================
+
+
+[1] Gia phả họ Nguyễn  -  công khai  -  tạo bởi Nguyễn Thị Lan (12/03/2025)
+---------------------------------------------------------------------------
+
+Tài khoản                Vai trò        Trạng thái Ô được gán
+Nguyễn Thị Lan           Admin          hoạt động  #10 Nguyễn Thị Lan
+Nguyễn Văn Nam           Quản lý        hoạt động  #8 Nguyễn Văn Nam
+Nguyễn Minh Khôi         Thành viên     hoạt động  #18 Nguyễn Minh Khôi
+Thảo Nguyễn              Thành viên     hoạt động  #19 Nguyễn Thị Thảo
+Lê Thị Hạnh              Thành viên     hoạt động  #9 Lê Thị Hạnh
+Trần Thị Mai             Thành viên     hoạt động  #4 Trần Thị Mai
+Chú Bình                 Thành viên hờ  hoạt động  (không có)
+Phạm Thị Hương           Khách tạm      hoạt động  (không có)
+Phan Thị Kim Anh         Khách tạm      đã rời     (không có)
+Võ Văn Tâm               Thành viên     BỊ CHẶN    #29 Võ Văn Tâm
+    Lý do chặn: Tự ý sửa thông tin của nhiều thành viên khi chưa được phép (bởi Nguyễn Thị Lan, 15/08/2026)
+
+[2] Gia phả họ Trần  -  RIÊNG TƯ  -  tạo bởi Nguyễn Minh Khôi (02/04/2025)
+--------------------------------------------------------------------------
+
+Tài khoản                Vai trò        Trạng thái Ô được gán
+Nguyễn Minh Khôi         Admin          hoạt động  (không có)
+Nguyễn Thị Lan           Thành viên hờ  hoạt động  (không có)
+
+[3] Dòng họ Lê ở Đà Nẵng  -  công khai  -  tạo bởi Lê Thị Hạnh (15/01/2025)
+---------------------------------------------------------------------------
+
+Tài khoản                Vai trò        Trạng thái Ô được gán
+Lê Thị Hạnh              Admin          hoạt động  #61 Lê Thị Hạnh
+Nguyễn Minh Khôi         Quản lý        hoạt động  (không có)
+Lê Văn Hiếu              Thành viên     hoạt động  #59 Lê Văn Hiếu
+Hồ Thị Thu               Thành viên hờ  hoạt động  (không có)
+Phan Đức Lộc             Khách tạm      hoạt động  (không có)
+Bình Mai                 Thành viên     hoạt động  #63 Mai Văn Bình
+
+[4] Gia phả họ Phạm  -  RIÊNG TƯ  -  tạo bởi Phạm Thị Hương (03/01/2025)
+------------------------------------------------------------------------
+
+Tài khoản                Vai trò        Trạng thái Ô được gán
+Phạm Thị Hương           Admin          hoạt động  #81 Phạm Thị Hương
+Nguyễn Minh Khôi         Thành viên hờ  hoạt động  (không có)
+
+============================================================================================
+5. CÁC CÂY GIA PHẢ (danh sách Ô theo đời)
+============================================================================================
+
+Mỗi dòng: #ID  Họ tên (giới, sinh-mất)  [ghi chú]. Dòng dưới là quan hệ của Ô đó.
+"Đời" tính theo dòng nối kể cả quan hệ đang bị ẩn. Ô không nối với cây chính được liệt kê riêng ở cuối cây.
+
+CÂY 1: Gia phả họ Nguyễn  (31 Ô)
+--------------------------------
+
+  -- Đời 1 --
+  #1   Nguyễn Văn Tín (Nam, ?-1998)
+         - vợ Phạm Thị Bình (góa, cưới 1944)
+  #2   Phạm Thị Bình (Nữ, 1925-2005)
+         - chồng Nguyễn Văn Tín (góa, cưới 1944)
+  -- Đời 2 --
+  #3   Nguyễn Văn Hòa (Nam, 1946-2019)  [TRƯỞNG TỘC]
+         - con của Nguyễn Văn Tín (ruột), Phạm Thị Bình (ruột)
+         - vợ Trần Thị Mai (góa, cưới 1966)
+  #4   Trần Thị Mai (Nữ, 1948)  [tài khoản: Trần Thị Mai; có CCCD]
+         - chồng Nguyễn Văn Hòa (góa, cưới 1966)
+  #5   Nguyễn Văn Phúc (Nam, 1950-2021)
+         - con của Nguyễn Văn Tín (ruột), Phạm Thị Bình (ruột)
+         - vợ Đặng Thị Sen (đã ly hôn, cưới 1975, ly hôn 1983)
+         - vợ Võ Thị Cúc (góa, cưới 1985)
+  #6   Đặng Thị Sen (Nữ, 1953)
+         - chồng Nguyễn Văn Phúc (đã ly hôn, cưới 1975, ly hôn 1983)
+  #7   Võ Thị Cúc (Nữ, 1958)
+         - chồng Nguyễn Văn Phúc (góa, cưới 1985)
+  -- Đời 3 --
+  #8   Nguyễn Văn Nam (Nam, 1968)  [tài khoản: Nguyễn Văn Nam; biệt danh "Anh Cả"; có CCCD]
+         - con của Nguyễn Văn Hòa (ruột), Trần Thị Mai (ruột)
+         - vợ Lê Thị Hạnh (đang kết hôn, cưới 1993)
+  #9   Lê Thị Hạnh (Nữ, 1970)  [tài khoản: Lê Thị Hạnh; có CCCD]
+         - chồng Nguyễn Văn Nam (đang kết hôn, cưới 1993)
+  #10  Nguyễn Thị Lan (Nữ, 1972)  [tài khoản: Nguyễn Thị Lan; có CCCD]
+         - con của Nguyễn Văn Hòa (ruột), Trần Thị Mai (ruột)
+         - chồng Phạm Văn Hải (đang kết hôn, cưới 1996)
+  #11  Phạm Văn Hải (Nam, 1969)
+         - vợ Nguyễn Thị Lan (đang kết hôn, cưới 1996)
+  #12  Nguyễn Văn Bảo (Nam, 1977)
+         - con của Nguyễn Văn Phúc (ruột), Đặng Thị Sen (ruột)
+  #13  Nguyễn Công Danh (Nam, 1986)
+         - con của Nguyễn Văn Phúc (ruột), Võ Thị Cúc (ruột)
+         - vợ Trương Thị Ngọc (đang kết hôn, cưới 2012)
+  #14  Trương Thị Ngọc (Nữ, 1989)
+         - chồng Nguyễn Công Danh (đang kết hôn, cưới 2012)
+  #15  Nguyễn Công Đạt (Nam, 1988)
+         - con của Nguyễn Văn Phúc (ruột, ẨN), Võ Thị Cúc (ruột, ẨN)
+         - vợ Ngô Thị Hà (đang kết hôn, cưới 2013)
+  #16  Ngô Thị Hà (Nữ, 1990)
+         - chồng Nguyễn Công Đạt (đang kết hôn, cưới 2013)
+  #17  Võ Minh Tuấn (Nam, 1980)
+         - con của Võ Thị Cúc (ruột), Nguyễn Văn Phúc (kế)
+  -- Đời 4 --
+  #18  Nguyễn Minh Khôi (Nam, 1995)  [tài khoản: Nguyễn Minh Khôi; có CCCD]
+         - con của Nguyễn Văn Nam (ruột), Lê Thị Hạnh (ruột)
+         - vợ Võ Thị An (đang kết hôn, cưới 2022)
+  #19  Nguyễn Thị Thảo (Nữ, 1998)  [tài khoản: Thảo Nguyễn; có CCCD]
+         - con của Nguyễn Văn Nam (ruột), Lê Thị Hạnh (ruột)
+  #20  Võ Thị An (Nữ, 1997)
+         - chồng Nguyễn Minh Khôi (đang kết hôn, cưới 2022)
+  #22  Phạm Gia Bảo (Nam, 1998)
+         - con của Nguyễn Thị Lan (ruột), Phạm Văn Hải (ruột)
+  #23  Phạm Thị Mỹ (Nữ, 2008)
+         - con của Nguyễn Thị Lan (nuôi)
+  #24  Nguyễn Minh Nghĩa (Nam, 2014)
+         - con của Nguyễn Công Danh (ruột), Trương Thị Ngọc (ruột)
+  #25  Nguyễn Thị Thư (Nữ, 2017)
+         - con của Nguyễn Công Danh (ruột), Trương Thị Ngọc (ruột)
+  #26  Nguyễn Minh Khải (Nam, 2015)
+         - con của Nguyễn Công Đạt (ruột), Ngô Thị Hà (ruột)
+  #27  Nguyễn Thị Trân (Nữ, 2018)
+         - con của Nguyễn Công Đạt (ruột), Ngô Thị Hà (ruột)
+  #28  Nguyễn Minh Anh (Nữ, 2020)
+         - con của Nguyễn Công Đạt (ruột), Ngô Thị Hà (ruột)
+  -- Đời 5 --
+  #21  Nguyễn Gia Hân (Nữ, 2024)
+         - con của Nguyễn Minh Khôi (ruột), Võ Thị An (ruột)
+  == CỤM RỜI (không nối với cây chính) ==
+  -- Đời 1 --
+  #29  Võ Văn Tâm (Nam, 1962)  [tài khoản: Võ Văn Tâm]
+         - vợ Đỗ Thị Lụa (đang kết hôn, cưới 1988)
+  #30  Đỗ Thị Lụa (Nữ, 1965)
+         - chồng Võ Văn Tâm (đang kết hôn, cưới 1988)
+  -- Đời 2 --
+  #31  Võ Minh Quân (Nam, 1990)
+         - con của Võ Văn Tâm (ruột), Đỗ Thị Lụa (ruột)
+
+CÂY 2: Gia phả họ Trần  (7 Ô)
+-----------------------------
+
+  -- Đời 1 --
+  #32  Trần Văn Lộc (Nam, 1955)  [TRƯỞNG TỘC]
+         - vợ Ngô Thị Tâm (đang kết hôn, cưới 1983)
+  #33  Ngô Thị Tâm (Nữ, 1958)
+         - chồng Trần Văn Lộc (đang kết hôn, cưới 1983)
+  #36  Trần Văn Sáu (Nam, 1960)
+         - vợ Lý Thị Đào (đang kết hôn, cưới 1988)
+  #37  Lý Thị Đào (Nữ, 1963)
+         - chồng Trần Văn Sáu (đang kết hôn, cưới 1988)
+  -- Đời 2 --
+  #34  Trần Văn Bình (Nam, 1985)
+         - con của Trần Văn Lộc (ruột), Ngô Thị Tâm (ruột)
+  #35  Trần Thị Hương (Nữ, 1988)
+         - con của Trần Văn Lộc (ruột), Ngô Thị Tâm (ruột)
+  #38  Trần Văn Bình (Nam, 1990)
+         - con của Trần Văn Sáu (ruột), Lý Thị Đào (ruột)
+
+CÂY 3: Dòng họ Lê ở Đà Nẵng  (39 Ô)
+-----------------------------------
+
+  -- Đời 1 --
+  #39  Lê Văn Cảnh (Nam, 1920-1995)  [TRƯỞNG TỘC]
+         - vợ Trần Thị Sáu (góa, cưới 1943)
+  #40  Trần Thị Sáu (Nữ, ?-2001)
+         - chồng Lê Văn Cảnh (góa, cưới 1943)
+  -- Đời 2 --
+  #41  Lê Văn Đại (Nam, 1945)  [biệt danh "Ông Tư"]
+         - con của Lê Văn Cảnh (ruột), Trần Thị Sáu (ruột)
+         - vợ Phan Thị Hồng (góa, cưới 1966)
+         - vợ Đỗ Thị Lan (đã ly hôn, cưới 1974, ly hôn 1980)
+         - vợ Võ Thị Hoa (đã ly hôn, cưới 1981, ly hôn 1987)
+         - vợ Bùi Thị Mận (đang kết hôn, cưới 1988)
+  #42  Lê Văn Trung (Nam, 1948)
+         - con của Lê Văn Cảnh (ruột), Trần Thị Sáu (ruột)
+         - vợ Hoàng Thị Lý (đang kết hôn, cưới 1969)
+  #43  Lê Thị Nga (Nữ, 1951)
+         - con của Lê Văn Cảnh (ruột), Trần Thị Sáu (ruột)
+         - chồng Hồ Văn Sơn (đã ly hôn, cưới 1971, ly hôn 1976)
+         - chồng Mai Văn Tâm (đang kết hôn, cưới 1978)
+  #44  Phan Thị Hồng (Nữ, 1947-1972)
+         - chồng Lê Văn Đại (góa, cưới 1966)
+  #45  Đỗ Thị Lan (Nữ, 1950)
+         - chồng Lê Văn Đại (đã ly hôn, cưới 1974, ly hôn 1980)
+  #46  Võ Thị Hoa (Nữ, 1954)
+         - chồng Lê Văn Đại (đã ly hôn, cưới 1981, ly hôn 1987)
+  #47  Bùi Thị Mận (Nữ, 1960)
+         - chồng Lê Văn Đại (đang kết hôn, cưới 1988)
+  #48  Hoàng Thị Lý (Nữ, 1952)
+         - chồng Lê Văn Trung (đang kết hôn, cưới 1969)
+  #49  Hồ Văn Sơn (Nam, 1949)
+         - vợ Lê Thị Nga (đã ly hôn, cưới 1971, ly hôn 1976)
+  #50  Mai Văn Tâm (Nam, 1947)
+         - vợ Lê Thị Nga (đang kết hôn, cưới 1978)
+  -- Đời 3 --
+  #51  Lê Văn An (Nam, 1968)
+         - con của Lê Văn Đại (ruột), Phan Thị Hồng (ruột)
+         - vợ Lê Thị Kim (đang kết hôn, cưới 1999)
+  #52  Lê Thị Bích (Nữ, 1971)
+         - con của Lê Văn Đại (ruột), Phan Thị Hồng (ruột)
+         - chồng Võ Minh Hải (đang kết hôn, cưới 1999)
+  #53  Lê Văn Cần (Nam, 1976)
+         - con của Lê Văn Đại (ruột), Đỗ Thị Lan (ruột)
+         - vợ Lê Thị Phượng (đang kết hôn, cưới 2012)
+  #54  Lê Thị Dung (Nữ, 1982)
+         - con của Lê Văn Đại (ruột), Võ Thị Hoa (ruột)
+         - chồng Trương Văn Phong (đang kết hôn, cưới 2008)
+  #55  Võ Minh Hải (Nam, 1977)
+         - con của Võ Thị Hoa (ruột), Lê Văn Đại (kế)
+         - vợ Lê Thị Bích (đang kết hôn, cưới 1999)
+  #56  Lê Văn Em (Nam, 1990)
+         - con của Lê Văn Đại (ruột), Bùi Thị Mận (ruột)
+         - vợ Châu Thị Nga (đang kết hôn, cưới 2012)
+  #57  Lê Thị Phượng (Nữ, 1993)
+         - con của Lê Văn Đại (ruột), Bùi Thị Mận (ruột)
+         - chồng Lê Văn Cần (đang kết hôn, cưới 2012)
+  #58  Lê Văn Nghĩa (Nam, 2000)
+         - con của Lê Văn Đại (nuôi), Bùi Thị Mận (nuôi)
+  #59  Lê Văn Hiếu (Nam, 1975)  [tài khoản: Lê Văn Hiếu; có CCCD]
+         - con của Lê Văn Trung (ruột), Hoàng Thị Lý (ruột)
+         - vợ Đinh Thị Yến (đang kết hôn, cưới 2001)
+  #60  Lê Thị Kim (Nữ, 1978)
+         - con của Lê Văn Trung (ruột), Hoàng Thị Lý (ruột)
+         - chồng Lê Văn An (đang kết hôn, cưới 1999)
+  #61  Lê Thị Hạnh (Nữ, 1970)  [tài khoản: Lê Thị Hạnh; có CCCD]
+         - con của Lê Văn Trung (ruột), Hoàng Thị Lý (ruột)
+  #62  Hồ Thị Thu (Nữ, 1973)
+         - con của Lê Thị Nga (ruột), Hồ Văn Sơn (ruột)
+  #63  Mai Văn Bình (Nam, 1980)  [tài khoản: Bình Mai]
+         - con của Lê Thị Nga (ruột, ẨN), Mai Văn Tâm (ruột, ẨN)
+         - vợ Lý Thị Hà (đang kết hôn, cưới 2010)
+  #64  Đinh Thị Yến (Nữ, 1977)
+         - chồng Lê Văn Hiếu (đang kết hôn, cưới 2001)
+  #65  Trương Văn Phong (Nam, 1980)
+         - vợ Lê Thị Dung (đang kết hôn, cưới 2008)
+  #66  Lý Thị Hà (Nữ, 1982)
+         - chồng Mai Văn Bình (đang kết hôn, cưới 2010)
+  #67  Châu Thị Nga (Nữ, 1992)
+         - chồng Lê Văn Em (đang kết hôn, cưới 2012)
+  -- Đời 4 --
+  #68  Lê Minh Tú (Nam, 2000)
+         - con của Lê Văn An (ruột), Lê Thị Kim (ruột)
+         - vợ Ngô Thị Thanh (đang kết hôn, cưới 2022)
+  #69  Lê Văn Khải (Nam, 2003)
+         - con của Lê Văn Hiếu (ruột), Đinh Thị Yến (ruột)
+  #70  Lê Thị Lam (Nữ, 2006)
+         - con của Lê Văn Hiếu (ruột), Đinh Thị Yến (ruột)
+  #71  Trương Thị Vy (Nữ, 2010)
+         - con của Lê Thị Dung (ruột), Trương Văn Phong (ruột)
+  #72  Mai Văn Đạt (Nam, 2012)
+         - con của Mai Văn Bình (ruột), Lý Thị Hà (ruột)
+  #73  Lê Văn Phát (Nam, 2014)
+         - con của Lê Văn Em (ruột), Châu Thị Nga (ruột)
+  #74  Lê Văn Khoa (Nam, 2017)
+         - con của Lê Văn Em (ruột), Châu Thị Nga (ruột)
+  #75  Lê Thị Ánh (Nữ, 2014)
+         - con của Lê Văn Cần (ruột), Lê Thị Phượng (ruột)
+  #76  Ngô Thị Thanh (Nữ, 2001)
+         - chồng Lê Minh Tú (đang kết hôn, cưới 2022)
+  -- Đời 5 --
+  #77  Lê Hoàng Long (Nam, 2024)
+         - con của Lê Minh Tú (ruột), Ngô Thị Thanh (ruột)
+
+CÂY 4: Gia phả họ Phạm  (7 Ô)
+-----------------------------
+
+  -- Đời 1 --
+  #78  Phạm Văn Đức (Nam, 1940-2015)  [TRƯỞNG TỘC]
+         - vợ Võ Thị Lài (góa, cưới 1967)
+  #79  Võ Thị Lài (Nữ, ?-2020)
+         - chồng Phạm Văn Đức (góa, cưới 1967)
+  -- Đời 2 --
+  #80  Phạm Văn Hải (Nam, 1969)
+         - con của Phạm Văn Đức (ruột), Võ Thị Lài (ruột)
+  #81  Phạm Thị Hương (Nữ, 1975)  [tài khoản: Phạm Thị Hương]
+         - con của Phạm Văn Đức (ruột), Võ Thị Lài (ruột)
+  #82  Phạm Văn Thắng (Nam, 1972)
+         - con của Phạm Văn Đức (ruột), Võ Thị Lài (ruột)
+         - vợ Đặng Thị Oanh (đang kết hôn, cưới 1998)
+  #83  Đặng Thị Oanh (Nữ, 1974)
+         - chồng Phạm Văn Thắng (đang kết hôn, cưới 1998)
+  -- Đời 3 --
+  #84  Phạm Gia Huy (Nam, 2000)
+         - con của Phạm Văn Thắng (ruột), Đặng Thị Oanh (ruột)
+
+Hôn nhân bị tô đỏ (cận huyết trong 3 đời, chỉ tính quan hệ ruột)
+----------------------------------------------------------------
+
+  Lê Văn An  -  Lê Thị Kim
+  Lê Văn Cần  -  Lê Thị Phượng
+  Đối chứng KHÔNG đỏ: Võ Minh Hải - Lê Thị Bích (anh em kế, không cùng huyết thống).
+  CSDL không có cột "loạn luân": màn hình tự tính khi vẽ. Dữ liệu chỉ chứa các cặp hôn nhân trên.
+
+============================================================================================
+6. TÌNH HUỐNG DÙNG ĐỂ THỬ (theo giao diện)
+============================================================================================
+
+* GD-02 đăng nhập
+    Khôi 0912345678 (bình thường); Võ Văn Tâm 0966777888 và Phùng Thế Vinh bị khóa (hiện
+    "Tài khoản đã bị khóa"); AdminApp 0901000001 (vào thẳng GD-21); Bình Mai 0917888999 (mật
+    khẩu).
+* GD-03 danh sách không gian
+    Khôi có 4 không gian, 4 vai trò: Nguyễn = Thành viên, Trần = Admin (riêng tư), Lê = Quản
+    lý, Phạm = Thành viên hờ (riêng tư). Tài khoản nền (ID 16-30) cho trạng thái trống.
+* GD-05 / GD-16 mã mời
+    KT7H29QX còn hạn (họ Nguyễn); HD4P8W2M đã dùng; EX9T1B6Z hết hạn; PH2Q7N4D còn hạn nhưng
+    họ Phạm RIÊNG TƯ nên phải bị từ chối; LE8V3J5H còn hạn (họ Lê).
+* GD-06 cây họ Nguyễn
+    Đa hôn nhân và ly hôn (Phúc: Sen ly hôn, Cúc góa); con riêng/kế (Võ Minh Tuấn); con nuôi
+    chỉ nối một phụ huynh (Phạm Thị Mỹ - Lan); trưởng tộc đã mất (Hòa); nhánh tách (Công Đạt
+    và gia đình); cụm rời (Võ Văn Tâm - Đỗ Thị Lụa - Võ Minh Quân).
+* GD-06 cây Dòng họ Lê
+    Người 4 đời vợ (Đại); người 2 đời chồng (Nga); 2 hôn nhân đỏ (An-Kim, Cần-Phượng); 1 đối
+    chứng không đỏ (Hải-Bích); con nuôi của cả hai cha mẹ (Nghĩa); con kế (Hải); nhánh tách
+    (Mai Văn Bình); hậu duệ của hôn nhân đỏ tới đời 5 (Long).
+* GD-07 / GD-17 trùng tên
+    Họ Trần có 2 Ô "Trần Văn Bình" khác cha mẹ (Lộc-Tâm và Sáu-Đào) để thử tìm kiếm kèm ngữ
+    cảnh quan hệ.
+* GD-08 chi tiết Ô
+    Nguyễn Văn Nam: có biệt danh, CCCD, 2 phụ huynh ruột, vợ, 2 con (đăng nhập Admin/Quản lý
+    thấy CCCD, vai trò thấp hơn không thấy).
+* GD-09a / 09b tiểu sử
+    Nam có tiểu sử (do Lan viết) và 3 bình luận; Hòa 2 bình luận; Phúc 1; Đại 2 (họ Lê). Ô
+    chưa có tiểu sử: hầu hết các Ô còn lại.
+* GD-10 thành tựu
+    Nam có 4 thành tựu (sắp xếp theo năm giảm dần); Lan, Hòa, Khôi, Đại, Hạnh, Hiếu mỗi
+    người 1; Ô khác để trống.
+* GD-11 ảnh đại diện
+    Nam có 1 ảnh đang dùng và 3 ảnh lịch sử (khung/hiệu ứng khác nhau). Tên khung/hiệu ứng
+    chỉ là giá trị tạm: Khong, Tron, VuongBoGoc, VienNau / Goc, DenTrang, CoDien.
+* GD-12 quan hệ cha/mẹ
+    Nam: 2 ruột. Phạm Thị Mỹ: chỉ 1 phụ huynh (nuôi). Võ Minh Tuấn: 1 ruột + 1 kế. Lê Văn
+    Nghĩa: 2 phụ huynh nuôi.
+* GD-13 hôn nhân
+    Phúc 2 đời vợ (ly hôn, góa); Đại 4 đời vợ (góa, ly hôn, ly hôn, đang kết hôn); Nga 2 đời
+    chồng; ThuTuHonNhan ghi theo người có nhiều đời hôn nhân.
+* GD-14 / GD-19 thành viên
+    Họ Nguyễn có đủ 5 vai trò (10 thành viên): 1 bị chặn (Võ Văn Tâm, có lý do), 1 Khách tạm
+    đã rời (Phan Thị Kim Anh).
+* GD-15 mời trực tiếp
+    Nhập 0912111222 (Nam) sẽ báo "đã tham gia với vai trò Quản lý"; 0920xxxxxx (tài khoản
+    nền) mời được; số lạ báo không tìm thấy.
+* GD-17 gán Ô
+    Họ Lê: Thành viên hờ "Hồ Thị Thu" - Ô cùng tên (#62) chưa gán ai. Họ Trần: Lan là Thành
+    viên hờ. Họ Phạm: Khôi là Thành viên hờ.
+* GD-18 cài đặt
+    Họ Nguyễn và Dòng họ Lê công khai; họ Trần và họ Phạm riêng tư (công tắc đã bật sẵn).
+* GD-21 / GD-22 AdminApp
+    30 tài khoản = 2 trang (20 + 10); 2 tài khoản bị khóa (Võ Văn Tâm, Phùng Thế Vinh). Khôi
+    có 4 không gian; tài khoản nền có 0.
+* GD-23 / GD-24 / GD-25
+    4 không gian; họ Nguyễn lớn nhất (31 Ô, 10 thành viên) nên dùng để thử màn hình xóa.
+
+============================================================================================
+7. GHI CHÚ
+============================================================================================
+
+- Một người nằm ở hai không gian = hai Ô khác nhau, cùng một tài khoản. Ví dụ Lê Thị Hạnh:
+  Ô vợ Nam (họ Nguyễn, #9) và Ô con gái Trung (Dòng họ Lê, #61).
+- Phạm Văn Hải xuất hiện ở họ Nguyễn (chồng Lan, #11) và họ Phạm (con trai, #80).
+- Các tài khoản Khách tạm và Thành viên hờ có id_OThanhVien = NULL, đúng ràng buộc.
+- Cột TrangThaiLienKet của OThanhVien đều là DangNoi. Tách nhánh dùng HienThiLienKet = 0
+  trên QuanHeChaMe (không dùng DaTachHo).
+- QHeHonNhan.HienThiLienKet đều = 1 (cột này không còn dùng trong cách tách nhánh theo
+  người).
+- Một số Ô cố ý để trống ngày sinh (Nguyễn Văn Tín, Trần Thị Sáu, Võ Thị Lài) để thử hiển
+  thị "Không rõ".
+- Đường dẫn ảnh (avatars/...) chỉ là tên giả, chưa có file thật.
+- Dữ liệu đã được kiểm tra: khóa ngoại, CHECK, UNIQUE (kể cả chỉ mục duy nhất có lọc của Ô
+  được gán), không có chu trình huyết thống, ngày sinh/cưới/ly hôn/mất hợp lý, không chồng
+  lấn hôn nhân.
