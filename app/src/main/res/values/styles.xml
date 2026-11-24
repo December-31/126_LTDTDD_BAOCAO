@@ -59,4 +59,17 @@
         <item name="android:inputType">text</item>
     </style>
 
+    <!-- Nhãn nhỏ dạng viên thuốc (vai trò, trạng thái). Màu nền do code đặt. -->
+    <style name="Widget.GiaPha.Badge" parent="">
+        <item name="android:fontFamily">@font/be_vietnam_pro_semibold</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:minHeight">20dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
+        <item name="android:maxLines">1</item>
+    </style>
 </resources>
