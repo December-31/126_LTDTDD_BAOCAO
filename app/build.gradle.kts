@@ -4,6 +4,9 @@ plugins {
 
 android {
     namespace = "com.example.giapha"
+    buildFeatures {
+        viewBinding = true
+    }
     compileSdk {
         version = release(37)
     }
