@@ -20,5 +20,7 @@
         <item name="fontFamily">@font/be_vietnam_pro</item>
         <item name="android:statusBarColor">@color/brown_primary</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+
+        <item name="materialButtonStyle">@style/Widget.GiaPha.Button.Primary</item>
     </style>
 </resources>
