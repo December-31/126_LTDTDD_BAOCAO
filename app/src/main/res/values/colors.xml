@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="brown_primary">#6B4226</color>
+    <color name="brown_pressed">#502C12</color>
+    <color name="text_primary">#2D1608</color>
+    <color name="text_secondary">#51443D</color>
+    <color name="text_hint">#8D7B71</color>
+    <color name="bg_screen">#FFF8F6</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="peach_light">#FFEAE0</color>
+    <color name="peach">#FFE2D5</color>
+    <color name="border_default">#E3D3C9</color>
+    <color name="disabled">#C4AFA3</color>
+    <color name="green_light">#C0ECB2</color>
+    <color name="green_mid">#7FA874</color>
+    <color name="green_dark">#2F5D2A</color>
+    <color name="danger">#B3402F</color>
+    <color name="gold">#C9A24B</color>
+    <color name="white">#FFFFFF</color>
 </resources>
