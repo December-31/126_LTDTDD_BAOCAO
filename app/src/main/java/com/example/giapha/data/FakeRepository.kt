@@ -822,5 +822,60 @@ class FakeRepository : Repository {
         binhLuan.removeAll { it.idBinhLuan == idBinhLuan }
         return Kq.Ok(Unit)
     }
+    // ---------------- Thành tựu (GD-10) ----------------
 
+    private fun kiemTraThanhTuu(ten: String, nam: Int?): Kq.Loi? {
+        if (ten.isBlank()) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Vui lòng nhập tên thành tựu")
+        if (ten.trim().length > 200) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Tên thành tựu tối đa 200 ký tự")
+        if (nam != null && (nam < 1800 || nam > java.time.Year.now().value))
+            return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Năm không hợp lệ")
+        return null
+    }
+
+    override fun thanhTuuCua(idO: Int): Kq<DanhSachThanhTuu> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        val toi = vaiTroCuaToi(o.idKhongGian) ?: return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền xem không gian này")
+        val kg = khongGian.first { it.idKhongGian == o.idKhongGian }
+        if (kg.cheDoRiengTu && toi.vaiTro == VaiTro.KHACH_TAM)
+            return loi(LoiApp.KHONG_GIAN_RIENG_TU, "Không gian này đang ở chế độ riêng tư")
+        val ds = thanhTuu.filter { it.idOThanhVien == idO }
+            .sortedWith(compareByDescending<ThanhTuu> { it.nam ?: Int.MIN_VALUE }.thenByDescending { it.idThanhTuu })
+        return Kq.Ok(DanhSachThanhTuu(o, toi, ds))
+    }
+
+    override fun themThanhTuu(idO: Int, ten: String, nam: Int?, moTa: String?): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenQuanTri(o.idKhongGian)?.let { return it }
+        kiemTraThanhTuu(ten, nam)?.let { return it }
+        thanhTuu.add(
+            ThanhTuu(
+                idThanhTuu = (thanhTuu.maxOfOrNull { it.idThanhTuu } ?: 0) + 1,
+                idOThanhVien = idO, tenThanhTuu = ten.trim(), moTa = moTa.hoacNull(), nam = nam
+            )
+        )
+        return Kq.Ok(Unit)
+    }
+
+    override fun suaThanhTuu(idThanhTuu: Int, ten: String, nam: Int?, moTa: String?): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val i = thanhTuu.indexOfFirst { it.idThanhTuu == idThanhTuu }
+        if (i < 0) return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành tựu này")
+        val o = layO(thanhTuu[i].idOThanhVien) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenQuanTri(o.idKhongGian)?.let { return it }
+        kiemTraThanhTuu(ten, nam)?.let { return it }
+        thanhTuu[i] = thanhTuu[i].copy(tenThanhTuu = ten.trim(), moTa = moTa.hoacNull(), nam = nam)
+        return Kq.Ok(Unit)
+    }
+
+    override fun xoaThanhTuu(idThanhTuu: Int): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val t = thanhTuu.firstOrNull { it.idThanhTuu == idThanhTuu }
+            ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành tựu này")
+        val o = layO(t.idOThanhVien) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenQuanTri(o.idKhongGian)?.let { return it }
+        thanhTuu.removeAll { it.idThanhTuu == idThanhTuu }
+        return Kq.Ok(Unit)
+    }
 }

@@ -73,6 +73,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".ui.person.ThanhTuuActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />

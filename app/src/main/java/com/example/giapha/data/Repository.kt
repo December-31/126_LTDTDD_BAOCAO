@@ -140,6 +140,13 @@ data class TieuSuVaBinhLuan(
     val binhLuan: List<DongBinhLuan>
 )
 
+/** Dữ liệu màn GD-10. ds đã xếp theo năm giảm dần, thành tựu không có năm nằm cuối. */
+data class DanhSachThanhTuu(
+    val o: OThanhVien,
+    val toi: ThanVienTrongKGian,          // vai trò của người đang xem
+    val ds: List<ThanhTuu>
+)
+
 /**
  * Cửa duy nhất giữa màn hình và dữ liệu. Màn hình không đọc SampleData trực tiếp.
  * Hiện chạy bằng FakeRepository (bộ nhớ); sau này thay bằng bản gọi API.
@@ -220,4 +227,13 @@ interface Repository {
     fun themBinhLuan(idO: Int, noiDung: String): Kq<Unit>
     /** Tác giả của bình luận, hoặc Admin/Quản lý. */
     fun xoaBinhLuan(idBinhLuan: Int): Kq<Unit>
+    // ---- Thành tựu (GD-10) ----
+    /** Mọi vai trò xem được (Khách tạm bị chặn nếu không gian riêng tư). */
+    fun thanhTuuCua(idO: Int): Kq<DanhSachThanhTuu>
+    /** Admin/Quản lý. Tên bắt buộc; năm và mô tả tùy chọn. */
+    fun themThanhTuu(idO: Int, ten: String, nam: Int?, moTa: String?): Kq<Unit>
+    /** Admin/Quản lý. */
+    fun suaThanhTuu(idThanhTuu: Int, ten: String, nam: Int?, moTa: String?): Kq<Unit>
+    /** Admin/Quản lý. */
+    fun xoaThanhTuu(idThanhTuu: Int): Kq<Unit>
 }
