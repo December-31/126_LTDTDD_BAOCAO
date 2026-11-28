@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/bg_screen">
 
     <!-- Main Content -->
     <LinearLayout
@@ -44,14 +46,18 @@
                 android:layout_height="match_parent" />
         </FrameLayout>
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/fab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="end|bottom"
+            android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
-            android:contentDescription="Tạo không gian"
-            android:src="@drawable/ic_arrow_back" />
+            android:fontFamily="@font/be_vietnam_pro_semibold"
+            android:text="Tạo Không gian mới"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/brown_primary"
+            app:icon="@drawable/ic_add"
+            app:iconTint="@color/white" />
 
     </LinearLayout>
 
