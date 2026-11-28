@@ -12,6 +12,7 @@ import com.example.giapha.ui.space.JoinCodeActivity
 import com.example.giapha.ui.space.SpaceListActivity
 import com.example.giapha.ui.tree.TreeActivity
 import com.example.giapha.ui.person.PersonDetailActivity
+import com.example.giapha.ui.person.PersonFormActivity
 
 /** Mọi lối đi giữa các màn hình. Dòng ghi "TẠM" sẽ được thay khi làm tới màn đó. */
 object Routes {
@@ -59,7 +60,11 @@ object Routes {
         )
 
     fun moSuaO(activity: Activity, idKhongGian: Int, idO: Int) =
-        activity.tam("TẠM: GD-07 Sửa thông tin Ô #$idO")
+        activity.startActivity(
+            Intent(activity, PersonFormActivity::class.java)
+                .putExtra(PersonFormActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+                .putExtra(PersonFormActivity.EXTRA_ID_O, idO)
+        )
 
     //fun xoaO(activity: Activity, idKhongGian: Int, idO: Int) =
     //    activity.tam("TẠM: xóa Ô #$idO (làm ở phần sau của 8a)")
@@ -80,7 +85,10 @@ object Routes {
         activity.tam("TẠM: GD-13 Quan hệ hôn nhân")
 
     fun moThemO(activity: Activity, idKhongGian: Int) =
-        activity.tam("TẠM: GD-07 Thêm thành viên (bước 8)")
+        activity.startActivity(
+            Intent(activity, PersonFormActivity::class.java)
+                .putExtra(PersonFormActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+        )
 
     fun moDanhSachThanhVien(activity: Activity, idKhongGian: Int) =
         activity.tam("TẠM: GD-14 Danh sách thành viên")

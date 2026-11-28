@@ -72,7 +72,8 @@ class LayoutEngineTest {
         val chinh = k.the.first { it.id == 1 }
         val dau = k.the.first { it.id == 15 }     // Nguyễn Công Đạt, hai dòng cha mẹ đang ẩn
         assertTrue("nhánh tách phải nằm dưới cây chính", dau.y > chinh.y + 600)
-        assertEquals(2, k.tieuDe.count { it.chu == "Quan hệ ẩn" })
+        assertEquals(1, k.tieuDe.count { it.chu == "Quan hệ ẩn" })               // nhánh Nguyễn Công Đạt
+        assertEquals(1, k.tieuDe.count { it.chu == "Chưa nối với cây chính" })   // cụm Võ Văn Tâm, Võ Minh Quân
     }
 
     @Test

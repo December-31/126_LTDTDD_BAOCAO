@@ -322,5 +322,145 @@ class FakeRepository : Repository {
         return Kq.Ok(Unit)
     }
 
+    // ---------------- Thêm/sửa Ô (GD-07) ----------------
 
+    private fun String?.hoacNull() = this?.trim()?.ifEmpty { null }
+
+    private fun kiemTraForm(f: FormO): Kq.Loi? {
+        if (f.hoTen.isBlank()) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Vui lòng nhập họ tên")
+        val homNay = java.time.LocalDate.now()
+        if (f.ngaySinh != null && f.ngaySinh.isAfter(homNay))
+            return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày sinh không thể ở tương lai")
+        if (!f.conSong) {
+            val mat = f.ngayMat ?: return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Vui lòng chọn ngày mất")
+            if (mat.isAfter(homNay))
+                return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày mất không thể ở tương lai")
+            if (f.ngaySinh != null && mat.isBefore(f.ngaySinh))
+                return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày mất không thể trước ngày sinh")
+        }
+        return null
+    }
+
+    override fun themO(idKhongGian: Int, f: FormO, quanHe: QuanHeMoi?): Kq<OThanhVien> {
+        if (giaLapLoi) return matKetNoi()
+        if (vaiTroCuaToi(idKhongGian)?.vaiTro?.laQuanTri != true)
+            return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền thêm thành viên")
+        kiemTraForm(f)?.let { return it }
+        val idMoi = (oThanhVien.maxOfOrNull { it.idOThanhVien } ?: 0) + 1
+
+        // Kiểm tra quan hệ trước khi ghi bất cứ thứ gì (như một transaction)
+        val cacChaMe = mutableListOf<QuanHeChaMe>()
+        var honNhanMoi: QHeHonNhan? = null
+        when (quanHe) {
+            null -> {}
+            is QuanHeMoi.LaCon -> {
+                val ds = quanHe.chaMe
+                if (ds.isEmpty())
+                    return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Vui lòng chọn ít nhất 1 người trong tìm kiếm")
+                if (ds.size > 2 || ds.map { it.idO }.toSet().size != ds.size)
+                    return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Tối đa 2 cha/mẹ và không được trùng nhau")
+                for (c in ds) {
+                    val p = layO(c.idO)
+                    if (p == null || p.idKhongGian != idKhongGian)
+                        return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy người được chọn")
+                    cacChaMe.add(QuanHeChaMe(idMoi, c.idO, c.loai, c.ngayXacLap))
+                }
+                // Tối đa một cha ruột và một mẹ ruột
+                val gioiRuot = ds.filter { it.loai == LoaiQuanHe.RUOT }.mapNotNull { layO(it.idO)?.gioiTinh }
+                if (gioiRuot.size == 2 && gioiRuot[0] == gioiRuot[1] && gioiRuot[0] != GioiTinh.KHAC)
+                    return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Chỉ có thể có một cha ruột và một mẹ ruột")
+            }
+            is QuanHeMoi.LaVoChong -> {
+                val kia = layO(quanHe.idNguoiKia)
+                if (kia == null || kia.idKhongGian != idKhongGian)
+                    return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy người được chọn")
+                if (quanHe.thuTu < 1)
+                    return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Thứ tự hôn nhân phải từ 1 trở lên")
+                // Nam -> chồng, Nữ -> vợ; chưa rõ thì xét giới tính người kia
+                val moiLaChong = when {
+                    f.gioiTinh == GioiTinh.NAM -> true
+                    f.gioiTinh == GioiTinh.NU -> false
+                    kia.gioiTinh == GioiTinh.NAM -> false
+                    else -> true
+                }
+                honNhanMoi = QHeHonNhan(
+                    id = (honNhan.maxOfOrNull { it.id } ?: 0) + 1,
+                    idChong = if (moiLaChong) idMoi else kia.idOThanhVien,
+                    idVo = if (moiLaChong) kia.idOThanhVien else idMoi,
+                    ngayCoi = quanHe.ngayCuoi,
+                    thuTuHonNhan = quanHe.thuTu
+                )
+            }
+        }
+
+        val moi = OThanhVien(
+            idOThanhVien = idMoi,
+            idKhongGian = idKhongGian,
+            hoTen = f.hoTen.trim(),
+            bietDanh = f.bietDanh.hoacNull(),
+            gioiTinh = f.gioiTinh,
+            ngaySinh = f.ngaySinh,
+            queQuan = f.queQuan.hoacNull(),
+            conSong = f.conSong,
+            ngayMat = if (f.conSong) null else f.ngayMat,
+            cccd = f.cccd.hoacNull()
+        )
+        oThanhVien.add(moi)
+        quanHeChaMe.addAll(cacChaMe)
+        honNhanMoi?.let { honNhan.add(it) }
+        return Kq.Ok(moi)
+    }
+
+    private fun boDau(s: String): String =
+        java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+            .replace(Regex("\\p{Mn}+"), "")
+            .replace('đ', 'd').replace('Đ', 'D')
+
+    override fun timO(idKhongGian: Int, tuKhoa: String): Kq<List<KetQuaTim>> {
+        if (giaLapLoi) return matKetNoi()
+        if (vaiTroCuaToi(idKhongGian)?.vaiTro?.laQuanTri != true)
+            return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền thực hiện thao tác này")
+        val q = boDau(tuKhoa.trim())
+        if (q.isEmpty()) return Kq.Ok(emptyList())
+        fun ten(id: Int) = oThanhVien.first { it.idOThanhVien == id }.hoTen
+
+        val ds = oThanhVien
+            .filter { it.idKhongGian == idKhongGian && boDau(it.hoTen).contains(q, ignoreCase = true) }
+            .sortedBy { it.idOThanhVien }
+            .take(20)
+            .map { o ->
+                val cha = quanHeChaMe.filter { it.idCon == o.idOThanhVien }
+                    .sortedBy { it.idPhuHuynh }.map { ten(it.idPhuHuynh) }
+                val vc = honNhan.filter { it.idChong == o.idOThanhVien || it.idVo == o.idOThanhVien }
+                val nguCanh = when {
+                    cha.isNotEmpty() -> "Con của: " + cha.joinToString(", ")
+                    vc.isNotEmpty() -> "Vợ/chồng của: " + vc.joinToString(", ") {
+                        ten(if (it.idChong == o.idOThanhVien) it.idVo else it.idChong)
+                    }
+                    else -> "Chưa có quan hệ"
+                }
+                KetQuaTim(o.idOThanhVien, o.hoTen, nguCanh, vc.size)
+            }
+        return Kq.Ok(ds)
+    }
+
+    override fun suaO(idO: Int, f: FormO): Kq<OThanhVien> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        if (vaiTroCuaToi(o.idKhongGian)?.vaiTro?.laQuanTri != true)
+            return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền sửa thành viên")
+        kiemTraForm(f)?.let { return it }
+        val moi = o.copy(
+            hoTen = f.hoTen.trim(),
+            bietDanh = f.bietDanh.hoacNull(),
+            gioiTinh = f.gioiTinh,
+            ngaySinh = f.ngaySinh,
+            queQuan = f.queQuan.hoacNull(),
+            conSong = f.conSong,
+            ngayMat = if (f.conSong) null else f.ngayMat,
+            cccd = f.cccd.hoacNull()
+        )
+        thayO(moi)
+        return Kq.Ok(moi)
+    }
 }

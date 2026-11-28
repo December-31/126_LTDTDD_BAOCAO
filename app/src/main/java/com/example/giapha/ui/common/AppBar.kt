@@ -9,6 +9,12 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.giapha.databinding.ViewAppBarBinding
+import android.graphics.Color
+import android.view.Gravity
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.core.content.res.ResourcesCompat
+import com.example.giapha.R
 
 /**
  * Gọi: binding.appBar.setup(this, "Hồ sơ cá nhân")
@@ -55,4 +61,25 @@ fun ViewAppBarBinding.setAction(context: Context, iconRes: Int, description: Str
         setOnClickListener { onClick() }
     }
     actionContainer.addView(button)
+}
+
+/** Nút chữ bên phải thanh tiêu đề (ví dụ "Lưu"). Trả về TextView để bật/tắt bằng isEnabled. */
+fun ViewAppBarBinding.setTextAction(context: Context, text: String, onClick: () -> Unit): TextView {
+    actionContainer.removeAllViews()
+    val d = context.resources.displayMetrics.density
+    val out = TypedValue()
+    context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, out, true)
+    val tv = TextView(context).apply {
+        layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, (48 * d).toInt())
+        gravity = Gravity.CENTER
+        setPadding((16 * d).toInt(), 0, (16 * d).toInt(), 0)
+        this.text = text
+        textSize = 15f
+        typeface = ResourcesCompat.getFont(context, R.font.be_vietnam_pro_bold)
+        setTextColor(Color.WHITE)
+        setBackgroundResource(out.resourceId)
+        setOnClickListener { onClick() }
+    }
+    actionContainer.addView(tv)
+    return tv
 }

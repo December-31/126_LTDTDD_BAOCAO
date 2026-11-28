@@ -1,6 +1,7 @@
 package com.example.giapha.data
 
 import com.example.giapha.model.*
+import java.time.LocalDate
 
 /** Một dòng trong danh sách không gian (GD-03): không gian kèm vai trò của người đang đăng nhập. */
 data class KhongGianCuaToi(
@@ -47,6 +48,34 @@ data class TacDongXoa(
     val tachKhoiCayChinh: List<String>     // họ tên những người sẽ mất liên kết với cây chính
 )
 
+/** Dữ liệu nhập từ form GD-07. */
+data class FormO(
+    val hoTen: String,
+    val bietDanh: String?,
+    val gioiTinh: GioiTinh?,
+    val ngaySinh: LocalDate?,
+    val queQuan: String?,
+    val cccd: String?,
+    val conSong: Boolean,
+    val ngayMat: LocalDate?
+)
+
+/** Một kết quả tìm Ô kèm ngữ cảnh để phân biệt người trùng tên. */
+data class KetQuaTim(
+    val idO: Int,
+    val hoTen: String,
+    val nguCanh: String,       // "Con của: A, B" / "Vợ/chồng của: X" / "Chưa có quan hệ"
+    val soHonNhan: Int         // số hôn nhân hiện có, để gợi ý "Thứ tự hôn nhân"
+)
+
+data class ChaMeChon(val idO: Int, val loai: LoaiQuanHe, val ngayXacLap: LocalDate?)
+
+/** Quan hệ gắn kèm khi tạo Ô mới. null = Ô độc lập. */
+sealed class QuanHeMoi {
+    data class LaCon(val chaMe: List<ChaMeChon>) : QuanHeMoi()          // 1–2 người
+    data class LaVoChong(val idNguoiKia: Int, val ngayCuoi: LocalDate?, val thuTu: Int) : QuanHeMoi()
+}
+
 /**
  * Cửa duy nhất giữa màn hình và dữ liệu. Màn hình không đọc SampleData trực tiếp.
  * Hiện chạy bằng FakeRepository (bộ nhớ); sau này thay bằng bản gọi API.
@@ -82,4 +111,11 @@ interface Repository {
     fun xemTruocXoaO(idO: Int): Kq<TacDongXoa>
     /** Xóa chỉ Ô này, các dòng quan hệ nối tới nó và dữ liệu riêng của nó (QUYET_DINH mục 5.5). */
     fun xoaO(idO: Int): Kq<Unit>
+    // ---- Thêm/sửa Ô (GD-07) ----
+    /** Admin/Quản lý. quanHe = null: Ô độc lập. Ghi Ô và quan hệ cùng lúc, lỗi thì không ghi gì. */
+    fun themO(idKhongGian: Int, f: FormO, quanHe: QuanHeMoi? = null): Kq<OThanhVien>
+    /** Admin/Quản lý. Chỉ sửa thông tin cá nhân; không đụng quan hệ, không đổi Trưởng tộc. */
+    fun suaO(idO: Int, f: FormO): Kq<OThanhVien>
+    /** Admin/Quản lý. Tìm Ô trong không gian theo tên (không phân biệt dấu), kèm ngữ cảnh quan hệ. */
+    fun timO(idKhongGian: Int, tuKhoa: String): Kq<List<KetQuaTim>>
 }
