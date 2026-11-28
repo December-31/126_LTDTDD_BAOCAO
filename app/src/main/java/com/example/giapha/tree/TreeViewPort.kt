@@ -3,6 +3,7 @@ package com.example.giapha.tree
 import android.content.Context
 import android.util.AttributeSet
 import android.view.GestureDetector
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
@@ -22,12 +23,22 @@ class TreeViewport @JvmOverloads constructor(
     companion object {
         const val HE_SO_NHO_NHAT = 0.5f
         const val HE_SO_LON_NHAT = 1.5f
+        const val DUNG_SAI_CHAM = 12f      // dp màn hình, cho nhấn giữ đường nối và bấm nhãn "Ẩn"
     }
 
     val cay = TreeView(context)
 
     /** Nhận id Ô khi người dùng chạm một thẻ. */
     var khiChamThe: ((Int) -> Unit)? = null
+
+    /** Chỉ Admin/Quản lý: nhấn giữ một đường nối để chọn, bấm nhãn "Ẩn" thì gọi khiBamAn. */
+    var choPhepAn: Boolean = false
+        set(v) {
+            field = v
+            if (!v) cay.chonNut(null)
+        }
+    var khiBamAn: ((NutQuanHe) -> Unit)? = null
+
 
     private val mat = context.resources.displayMetrics.density
     private val cuon = OverScroller(context)
@@ -60,8 +71,24 @@ class TreeViewport @JvmOverloads constructor(
             return true
         }
 
+        override fun onLongPress(e: MotionEvent) {
+            if (!choPhepAn || phongTo.isInProgress) return
+            val nut = cay.timNutTai(e.x + scrollX, e.y + scrollY, DUNG_SAI_CHAM) ?: return
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            cay.chonNut(nut)
+        }
+
         override fun onSingleTapUp(e: MotionEvent): Boolean {
-            cay.idTheTai(e.x + scrollX, e.y + scrollY)?.let { khiChamThe?.invoke(it) }
+            val px = e.x + scrollX
+            val py = e.y + scrollY
+            val chon = cay.nutDangChon
+            if (chon != null) {
+                // đang chọn một đường: bấm nhãn "Ẩn" thì ẩn, bấm chỗ khác thì bỏ chọn (không mở thẻ)
+                if (cay.chamNhanAn(px, py, DUNG_SAI_CHAM)) khiBamAn?.invoke(chon)
+                cay.chonNut(null)
+                return true
+            }
+            cay.idTheTai(px, py)?.let { khiChamThe?.invoke(it) }
             return true
         }
     })

@@ -10,6 +10,39 @@
         android:id="@+id/appBar"
         layout="@layout/view_app_bar" />
 
+    <!-- Dải "Đang lọc N đời · Bỏ lọc": chỉ hiện khi đang lọc số đời -->
+    <LinearLayout
+        android:id="@+id/bandFilter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/peach_light"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvFilterInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/be_vietnam_pro_semibold"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvFilterClear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:fontFamily="@font/be_vietnam_pro_bold"
+            android:minHeight="40dp"
+            android:gravity="center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="16dp"
+            android:text="Bỏ lọc"
+            android:textColor="@color/brown_primary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"

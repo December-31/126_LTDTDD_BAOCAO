@@ -708,4 +708,28 @@ class FakeRepository : Repository {
         return Kq.Ok(Unit)
     }
 
+    // ---------------- Ẩn/hiện lại quan hệ (8b) ----------------
+
+    override fun anQuanHeChaMe(idCon: Int, idPhuHuynh: List<Int>, an: Boolean): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val con = layO(idCon) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy người này")
+        quyenQuanTri(con.idKhongGian)?.let { return it }
+        val viTri = quanHeChaMe.indices.filter {
+            quanHeChaMe[it].idCon == idCon && quanHeChaMe[it].idPhuHuynh in idPhuHuynh
+        }
+        if (viTri.isEmpty()) return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy quan hệ này")
+        viTri.forEach { quanHeChaMe[it] = quanHeChaMe[it].copy(hienThiLienKet = !an) }
+        return Kq.Ok(Unit)
+    }
+
+    override fun anHonNhan(idHonNhan: Int, an: Boolean): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val i = honNhan.indexOfFirst { it.id == idHonNhan }
+        if (i < 0) return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy hôn nhân này")
+        val chong = layO(honNhan[i].idChong) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy hôn nhân này")
+        quyenQuanTri(chong.idKhongGian)?.let { return it }
+        honNhan[i] = honNhan[i].copy(hienThiLienKet = !an)
+        return Kq.Ok(Unit)
+    }
+
 }
