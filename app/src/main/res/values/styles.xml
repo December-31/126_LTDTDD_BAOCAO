@@ -59,7 +59,7 @@
         <item name="android:inputType">text</item>
     </style>
 
-    <!-- Nhãn nhỏ dạng viên thuốc (vai trò, trạng thái). Màu nền do code đặt. -->
+    <!-- Nhãn nhỏ dạng viên thuốc (vai trò, trạng thái) -->
     <style name="Widget.GiaPha.Badge" parent="">
         <item name="android:fontFamily">@font/be_vietnam_pro_semibold</item>
         <item name="android:textSize">11sp</item>
@@ -71,5 +71,24 @@
         <item name="android:paddingTop">2dp</item>
         <item name="android:paddingBottom">2dp</item>
         <item name="android:maxLines">1</item>
+    </style>
+
+    <!-- Dòng trong sidebar -->
+    <style name="Widget.GiaPha.DrawerItem" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:fontFamily">@font/be_vietnam_pro_semibold</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <!-- Nhãn nhỏ phía trên ô nhập -->
+    <style name="Widget.GiaPha.FieldLabel" parent="">
+        <item name="android:fontFamily">@font/be_vietnam_pro_semibold</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/brown_primary</item>
     </style>
 </resources>
