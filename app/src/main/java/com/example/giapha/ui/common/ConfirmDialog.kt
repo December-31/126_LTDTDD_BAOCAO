@@ -24,6 +24,7 @@ fun Context.showConfirmDialog(
     confirmText: String = "Xác nhận",
     cancelText: String = "Hủy",
     destructive: Boolean = true,
+    showIcon: Boolean = destructive,
     onConfirm: () -> Unit
 ) {
     val b = DialogConfirmBinding.inflate(LayoutInflater.from(this))
@@ -34,8 +35,9 @@ fun Context.showConfirmDialog(
     if (!destructive) {
         b.btnConfirm.backgroundTintList =
             ColorStateList.valueOf(ContextCompat.getColor(this, R.color.brown_primary))
-        b.iconWrap.visibility = android.view.View.GONE
     }
+    if (!showIcon) b.iconWrap.visibility = android.view.View.GONE
+
 
     val dialog = AlertDialog.Builder(this).setView(b.root).create()
     b.btnCancel.setOnClickListener { dialog.dismiss() }

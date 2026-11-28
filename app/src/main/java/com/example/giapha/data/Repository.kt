@@ -76,6 +76,28 @@ sealed class QuanHeMoi {
     data class LaVoChong(val idNguoiKia: Int, val ngayCuoi: LocalDate?, val thuTu: Int) : QuanHeMoi()
 }
 
+/** Chiều khi thêm quan hệ ở GD-12, tính từ Ô đang xem. */
+enum class ChieuQuanHe {
+    LA_CON,         // Ô đang xem là con → người được chọn là cha/mẹ của Ô
+    LA_PHU_HUYNH    // Ô đang xem là cha/mẹ → người được chọn là con của Ô
+}
+
+/** Một dòng ở GD-12: người ở đầu kia của quan hệ cha/mẹ–con. */
+data class DongQuanHeChaMe(
+    val idNguoi: Int,
+    val hoTen: String,
+    val conSong: Boolean,
+    val loai: LoaiQuanHe,
+    val ngayXacLap: LocalDate?
+)
+
+/** Dữ liệu màn GD-12: cha/mẹ của Ô và con của Ô. */
+data class QuanHeChaMeCuaO(
+    val o: OThanhVien,
+    val chaMe: List<DongQuanHeChaMe>,
+    val con: List<DongQuanHeChaMe>
+)
+
 /**
  * Cửa duy nhất giữa màn hình và dữ liệu. Màn hình không đọc SampleData trực tiếp.
  * Hiện chạy bằng FakeRepository (bộ nhớ); sau này thay bằng bản gọi API.
@@ -118,4 +140,15 @@ interface Repository {
     fun suaO(idO: Int, f: FormO): Kq<OThanhVien>
     /** Admin/Quản lý. Tìm Ô trong không gian theo tên (không phân biệt dấu), kèm ngữ cảnh quan hệ. */
     fun timO(idKhongGian: Int, tuKhoa: String): Kq<List<KetQuaTim>>
+    // ---- Quan hệ cha/mẹ (GD-12) ----
+    /** Admin/Quản lý. Cha/mẹ của Ô và con của Ô, kể cả các dòng đang ẩn. */
+    fun quanHeChaMeCua(idO: Int): Kq<QuanHeChaMeCuaO>
+    /** Tìm người để thêm; đã loại Ô này, người đã nối trực tiếp và những người sẽ tạo vòng lặp huyết thống. */
+    fun timUngVienChaMe(idO: Int, chieu: ChieuQuanHe, tuKhoa: String): Kq<List<KetQuaTim>>
+    /** Chặn: trùng dòng, vòng lặp huyết thống, quá một cha ruột hoặc một mẹ ruột. */
+    fun themQuanHeChaMe(idO: Int, chieu: ChieuQuanHe, idNguoiKia: Int, loai: LoaiQuanHe, ngayXacLap: LocalDate?): Kq<Unit>
+    /** Chỉ đổi loại và ngày; muốn đổi người thì xóa rồi thêm lại. */
+    fun suaQuanHeChaMe(idCon: Int, idPhuHuynh: Int, loai: LoaiQuanHe, ngayXacLap: LocalDate?): Kq<Unit>
+    /** Chỉ gỡ dòng quan hệ, không xóa Ô nào. */
+    fun xoaQuanHeChaMe(idCon: Int, idPhuHuynh: Int): Kq<Unit>
 }

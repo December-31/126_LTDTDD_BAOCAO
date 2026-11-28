@@ -13,7 +13,7 @@ import com.example.giapha.ui.space.SpaceListActivity
 import com.example.giapha.ui.tree.TreeActivity
 import com.example.giapha.ui.person.PersonDetailActivity
 import com.example.giapha.ui.person.PersonFormActivity
-
+import com.example.giapha.ui.person.ParentRelationActivity
 /** Mọi lối đi giữa các màn hình. Dòng ghi "TẠM" sẽ được thay khi làm tới màn đó. */
 object Routes {
 
@@ -79,7 +79,12 @@ object Routes {
         activity.tam("TẠM: GD-11 Ảnh đại diện (bước 9)")
 
     fun moQuanHeChaMe(activity: Activity, idKhongGian: Int, idO: Int) =
-        activity.tam("TẠM: GD-12 Quan hệ cha/mẹ")
+        activity.startActivity(
+            Intent(activity, ParentRelationActivity::class.java)
+                .putExtra(ParentRelationActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+                .putExtra(ParentRelationActivity.EXTRA_ID_O, idO)
+        )
+
 
     fun moQuanHeHonNhan(activity: Activity, idKhongGian: Int, idO: Int) =
         activity.tam("TẠM: GD-13 Quan hệ hôn nhân")
