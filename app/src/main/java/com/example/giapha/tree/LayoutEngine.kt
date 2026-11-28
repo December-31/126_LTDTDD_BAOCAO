@@ -93,8 +93,18 @@ object LayoutEngine {
         cauHinh: CauHinhCay = CauHinhCay()
     ): KetQuaBoCuc = Tinh(oThanhVien, quanHeChaMe, honNhan, cauHinh).chay()
 
-    fun tinh(du: DuLieuCay, cauHinh: CauHinhCay = CauHinhCay()): KetQuaBoCuc =
-        tinh(du.oThanhVien, du.quanHeChaMe, du.honNhan, cauHinh)
+    /** loc != null: chỉ vẽ các Ô trong phạm vi N đời quanh Ô mốc. Số đời trên dải "Đời" vẫn là số tuyệt đối. */
+    fun tinh(du: DuLieuCay, cauHinh: CauHinhCay = CauHinhCay(), loc: BoLocDoi? = null): KetQuaBoCuc {
+        val hienChi = loc?.let { LocSoDoi.tinh(it.idMoc, it.n, duLieuLoc(du, cauHinh)) }
+        return Tinh(du.oThanhVien, du.quanHeChaMe, du.honNhan, cauHinh, hienChi).chay()
+    }
+
+    /** Số đời lớn nhất có nghĩa quanh Ô mốc (N lớn hơn nữa không hiện thêm ai). null nếu Ô mốc không nằm trong dữ liệu. */
+    fun soDoiToiDa(du: DuLieuCay, idMoc: Int, cauHinh: CauHinhCay = CauHinhCay()): Int? =
+        LocSoDoi.soDoiToiDa(idMoc, duLieuLoc(du, cauHinh))
+
+    private fun duLieuLoc(du: DuLieuCay, cauHinh: CauHinhCay): DuLieuLoc =
+        Tinh(du.oThanhVien, du.quanHeChaMe, du.honNhan, cauHinh).duLieuLoc()
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -170,10 +180,12 @@ private class Tinh(
     private val oThanhVien: List<OThanhVien>,
     private val quanHeChaMe: List<QuanHeChaMe>,
     private val honNhan: List<QHeHonNhan>,
-    private val ch: CauHinhCay
+    private val ch: CauHinhCay,
+    hienChi: Set<Int>? = null
 ) {
     private val byId = oThanhVien.associateBy { it.idOThanhVien }
     private val ids = byId.keys
+    private val idsHien: Set<Int> = if (hienChi == null) ids else ids.filterTo(HashSet()) { it in hienChi }
     private val linksAll = quanHeChaMe
         .filter { it.idCon in ids && it.idPhuHuynh in ids && it.idCon != it.idPhuHuynh }
         .distinctBy { it.idCon to it.idPhuHuynh }
@@ -183,7 +195,7 @@ private class Tinh(
         .distinctBy { setOf(it.idChong, it.idVo) }
     private val marriagesAn = marriagesAll.filter { !it.hienThiLienKet }
     /** Hôn nhân đang hiện: dùng cho bố cục và đường nối. */
-    private val marriages = marriagesAll.filter { it.hienThiLienKet }
+    private val marriages = marriagesAll.filter { it.hienThiLienKet && it.idChong in idsHien && it.idVo in idsHien }
 
     /**
      * Ẩn hôn nhân: người thuộc dòng máu của cây ở lại; người kia và con của hai người
@@ -195,6 +207,7 @@ private class Tinh(
     private val linksVis = linksAll
         .filter { it.hienThiLienKet }                    // dòng QuanHeChaMe đã ẩn
         .filterNot { l -> boDoHonNhanAn(l) }             // dòng nối tới bên ở lại của hôn nhân đã ẩn
+        .filter { it.idCon in idsHien && it.idPhuHuynh in idsHien }
 
     private val canhBao = mutableListOf<String>()
     private val doi = HashMap<Int, Int>()
@@ -216,12 +229,19 @@ private class Tinh(
     private val oTieuDe = mutableListOf<TieuDeCum>()
     private var phaiNhatCanvas = 0f
 
+    /** Cho bộ lọc số đời: số đời tuyệt đối và các đường đang hiển thị (đã trừ phần ẩn). */
+    fun duLieuLoc(): DuLieuLoc {
+        tinhDoi()
+        return DuLieuLoc(HashMap(doi), linksVis, marriages)
+    }
+
+
     fun chay(): KetQuaBoCuc {
         tinhDoi()
         taoKhoi()
         ganChaMe()
 
-        val cum = components(adjacency(linksVis, marriages), coLienKet.sorted())
+        val cum = components(adjacency(linksVis, marriages), coLienKet.filter { it in idsHien }.sorted())
         val chinh = cum.minByOrNull { it.min() }
         val thuTu = listOfNotNull(chinh) + cum.filter { it !== chinh }.sortedBy { it.min() }
 
@@ -353,7 +373,7 @@ private class Tinh(
     // ---------------------------------------------------------------- khối và nơi gắn
 
     private fun taoKhoi() {
-        val comps = components(adjacency(emptyList(), marriages), ids)
+        val comps = components(adjacency(emptyList(), marriages), idsHien)
         for (comp in comps) {
             val (ms, hns) = sapXepKhoi(comp, marriages.filter { it.idChong in comp })
             val k = Khoi(ms, hns)
@@ -384,7 +404,7 @@ private class Tinh(
         return members to hns
     }
 
-    private fun cacKhoi(): List<Khoi> = ids.sorted().map { khoiCua[it]!! }.distinct()
+    private fun cacKhoi(): List<Khoi> = idsHien.sorted().map { khoiCua[it]!! }.distinct()
 
     /** Các nơi một người gắn vào cha mẹ (chỉ dòng đang hiện). Hai phụ huynh đã cưới nhau gộp thành một. */
     private fun cacGan(id: Int): List<Gan> {
@@ -671,7 +691,7 @@ private class Tinh(
     // ---------------------------------------------------------------- khu "Chưa rõ vị trí"
 
     private fun xepChuaRoViTri(yGoc: Float): Float {
-        val ds = ids.filter { it !in coLienKet }.sorted()
+        val ds = idsHien.filter { it !in coLienKet }.sorted()
         if (ds.isEmpty()) return yGoc
         val buoc = w + ch.khoangCachThe
         val rongCanvas = maxOf(phaiNhatCanvas, ch.leTrai + 4 * buoc - ch.khoangCachThe)
