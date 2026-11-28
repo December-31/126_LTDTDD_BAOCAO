@@ -15,6 +15,9 @@ import com.example.giapha.ui.person.PersonDetailActivity
 import com.example.giapha.ui.person.PersonFormActivity
 import com.example.giapha.ui.person.ParentRelationActivity
 import com.example.giapha.ui.person.MarriageActivity
+import com.example.giapha.ui.person.BioActivity
+import com.example.giapha.ui.person.BioEditActivity
+import com.example.giapha.ui.person.ThanhTuuActivity
 /** Mọi lối đi giữa các màn hình. Dòng ghi "TẠM" sẽ được thay khi làm tới màn đó. */
 object Routes {
 
@@ -71,10 +74,25 @@ object Routes {
     //    activity.tam("TẠM: xóa Ô #$idO (làm ở phần sau của 8a)")
 
     fun moTieuSu(activity: Activity, idKhongGian: Int, idO: Int) =
-        activity.tam("TẠM: GD-09 Tiểu sử & bình luận (bước 9)")
+        activity.startActivity(
+            Intent(activity, BioActivity::class.java)
+                .putExtra(BioActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+                .putExtra(BioActivity.EXTRA_ID_O, idO)
+        )
+
+    fun moSoanTieuSu(activity: Activity, idKhongGian: Int, idO: Int) =
+        activity.startActivity(
+            Intent(activity, BioEditActivity::class.java)
+                .putExtra(BioEditActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+                .putExtra(BioEditActivity.EXTRA_ID_O, idO)
+        )
 
     fun moThanhTuu(activity: Activity, idKhongGian: Int, idO: Int) =
-        activity.tam("TẠM: GD-10 Thành tựu (bước 9)")
+        activity.startActivity(
+            Intent(activity, ThanhTuuActivity::class.java)
+                .putExtra(ThanhTuuActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+                .putExtra(ThanhTuuActivity.EXTRA_ID_O, idO)
+        )
 
     fun moAnhDaiDien(activity: Activity, idKhongGian: Int, idO: Int) =
         activity.tam("TẠM: GD-11 Ảnh đại diện (bước 9)")
