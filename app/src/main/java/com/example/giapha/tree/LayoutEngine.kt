@@ -421,9 +421,14 @@ private class Tinh(
 
     // ---------------------------------------------------------------- một cụm: xếp, tính hàng, sinh đường
 
-    /** Một không gian chỉ có một cây; mọi cụm nằm ngoài cây chính đều do quan hệ bị ẩn. */
-    @Suppress("UNUSED_PARAMETER")
-    private fun tieuDeCum(c: Set<Int>): String = "Quan hệ ẩn"
+    /**
+     * Tiêu đề cụm nằm ngoài cây chính: có dòng cha/mẹ–con đã ẩn nối ra ngoài cụm thì là "Quan hệ ẩn",
+     * ngược lại là "Chưa nối với cây chính" (ví dụ sau khi xóa một Ô).
+     */
+    private fun tieuDeCum(c: Set<Int>): String {
+        val doAn = linksAll.any { !it.hienThiLienKet && ((it.idCon in c) != (it.idPhuHuynh in c)) }
+        return if (doAn) "Quan hệ ẩn" else "Chưa nối với cây chính"
+    }
 
     /** Trả về y cuối cụm. */
     private fun xepCum(cum: Set<Int>, yGoc: Float, tieuDe: String?): Float {

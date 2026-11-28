@@ -32,16 +32,33 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".ui.tree.TreeActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".ui.profile.ProfileActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ui.space.JoinCodeActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.tree.TreeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.person.PersonDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.person.ParentRelationActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.person.MarriageActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.person.PersonFormActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

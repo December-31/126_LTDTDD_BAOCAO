@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_screen"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/appBar"
+        layout="@layout/view_app_bar" />
+
+    <ScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Thông tin cá nhân -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/be_vietnam_pro_bold"
+                    android:text="Thông tin cá nhân"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp" />
+
+                <!-- Họ tên (bắt buộc) -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/Widget.GiaPha.FieldLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Họ tên" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/be_vietnam_pro_semibold"
+                        android:text=" *"
+                        android:textColor="@color/danger"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <EditText
+                    android:id="@+id/etName"
+                    style="@style/Widget.GiaPha.Input"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="6dp"
+                    android:hint="Ví dụ: Nguyễn Văn Nam"
+                    android:importantForAutofill="no"
+                    android:inputType="textPersonName|textCapWords"
+                    android:maxLength="100" />
+
+                <TextView
+                    android:id="@+id/tvNameError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="@font/be_vietnam_pro"
+                    android:text="Vui lòng nhập họ tên"
+                    android:textColor="@color/danger"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <!-- Biệt danh -->
+                <TextView
+                    style="@style/Widget.GiaPha.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Biệt danh" />
+
+                <EditText
+                    android:id="@+id/etNickname"
+                    style="@style/Widget.GiaPha.Input"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="6dp"
+                    android:hint="Tên thường gọi ở nhà (không bắt buộc)"
+                    android:importantForAutofill="no"
+                    android:inputType="textCapWords"
+                    android:maxLength="50" />
+
+                <!-- Giới tính -->
+                <TextView
+                    style="@style/Widget.GiaPha.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Giới tính" />
+
+                <com.example.giapha.ui.common.SegmentedControl
+                    android:id="@+id/segGender"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="6dp" />
+
+                <!-- Ngày sinh -->
+                <TextView
+                    style="@style/Widget.GiaPha.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Ngày sinh" />
+
+                <LinearLayout
+                    android:id="@+id/fieldBirth"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_input"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <TextView
+                        android:id="@+id/tvBirth"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/be_vietnam_pro"
+                        android:text="Chọn ngày sinh"
+                        android:textColor="@color/text_hint"
+                        android:textSize="16sp" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_calendar" />
+                </LinearLayout>
+
+                <!-- Quê quán -->
+                <TextView
+                    style="@style/Widget.GiaPha.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Quê quán" />
+
+                <EditText
+                    android:id="@+id/etHometown"
+                    style="@style/Widget.GiaPha.Input"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="6dp"
+                    android:hint="Ví dụ: Hà Tĩnh"
+                    android:importantForAutofill="no"
+                    android:inputType="textCapWords"
+                    android:maxLength="100" />
+
+                <!-- CCCD -->
+                <TextView
+                    style="@style/Widget.GiaPha.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="CCCD" />
+
+                <EditText
+                    android:id="@+id/etCccd"
+                    style="@style/Widget.GiaPha.Input"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="6dp"
+                    android:hint="Số căn cước công dân (12 số)"
+                    android:importantForAutofill="no"
+                    android:inputType="number"
+                    android:maxLength="12" />
+
+                <!-- Còn sống -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/be_vietnam_pro_semibold"
+                        android:text="Còn sống"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swAlive"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true" />
+                </LinearLayout>
+
+                <!-- Ngày mất: chỉ hiện khi tắt "Còn sống" -->
+                <LinearLayout
+                    android:id="@+id/groupDeath"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        style="@style/Widget.GiaPha.FieldLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Ngày mất" />
+
+                    <LinearLayout
+                        android:id="@+id/fieldDeath"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_input"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp">
+
+                        <TextView
+                            android:id="@+id/tvDeath"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="@font/be_vietnam_pro"
+                            android:text="Chọn ngày mất"
+                            android:textColor="@color/text_hint"
+                            android:textSize="16sp" />
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_calendar" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvDeathError"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="@font/be_vietnam_pro"
+                        android:text="Vui lòng chọn ngày mất"
+                        android:textColor="@color/danger"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Quan hệ trong cây (chỉ chế độ Thêm) -->
+            <LinearLayout
+                android:id="@+id/cardRelation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/be_vietnam_pro_bold"
+                    android:text="Quan hệ trong cây"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRelCon"
+                    style="@style/Widget.GiaPha.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Là con của..." />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRelSpouse"
+                    style="@style/Widget.GiaPha.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Là vợ/chồng của..." />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRelNone"
+                    style="@style/Widget.GiaPha.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Chưa rõ quan hệ (thêm độc lập)" />
+
+                <!-- Khối tìm người được thêm vào đây bằng code -->
+                <LinearLayout
+                    android:id="@+id/pickerHost"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddSecond"
+                    style="@style/Widget.GiaPha.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ Thêm cha/mẹ thứ hai"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
