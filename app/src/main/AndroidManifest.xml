@@ -32,10 +32,6 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".ui.tree.TreeActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".ui.profile.ProfileActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
@@ -44,6 +40,14 @@
             android:name=".ui.space.JoinCodeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.tree.TreeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.person.PersonDetailActivity"
+            android:exported="false" />
 
         <activity
             android:name=".MainActivity"

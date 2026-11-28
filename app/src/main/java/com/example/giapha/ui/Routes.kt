@@ -1,4 +1,5 @@
 package com.example.giapha.ui
+
 import android.app.Activity
 import android.content.Intent
 import android.widget.Toast
@@ -10,7 +11,9 @@ import com.example.giapha.ui.profile.ProfileActivity
 import com.example.giapha.ui.space.JoinCodeActivity
 import com.example.giapha.ui.space.SpaceListActivity
 import com.example.giapha.ui.tree.TreeActivity
+import com.example.giapha.ui.person.PersonDetailActivity
 
+/** Mọi lối đi giữa các màn hình. Dòng ghi "TẠM" sẽ được thay khi làm tới màn đó. */
 object Routes {
 
     private fun Activity.tam(text: String) =
@@ -39,9 +42,42 @@ object Routes {
                 .putExtra(TreeActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
         )
 
-    // Các lối đi từ GD-06.
+    /** Về lại GD-06, đóng mọi màn GD-08 đang chồng phía trên; GD-06 tự tải lại ở onResume. */
+    fun veCay(activity: Activity, idKhongGian: Int) =
+        activity.startActivity(
+            Intent(activity, TreeActivity::class.java)
+                .putExtra(TreeActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        )
+
+    // Các lối đi từ GD-06. Dòng "TẠM" được thay khi làm tới màn tương ứng.
     fun moChiTietO(activity: Activity, idKhongGian: Int, idO: Int) =
-        activity.tam("TẠM: GD-08 Chi tiết Ô #$idO (bước 8)")
+        activity.startActivity(
+            Intent(activity, PersonDetailActivity::class.java)
+                .putExtra(PersonDetailActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+                .putExtra(PersonDetailActivity.EXTRA_ID_O, idO)
+        )
+
+    fun moSuaO(activity: Activity, idKhongGian: Int, idO: Int) =
+        activity.tam("TẠM: GD-07 Sửa thông tin Ô #$idO")
+
+    //fun xoaO(activity: Activity, idKhongGian: Int, idO: Int) =
+    //    activity.tam("TẠM: xóa Ô #$idO (làm ở phần sau của 8a)")
+
+    fun moTieuSu(activity: Activity, idKhongGian: Int, idO: Int) =
+        activity.tam("TẠM: GD-09 Tiểu sử & bình luận (bước 9)")
+
+    fun moThanhTuu(activity: Activity, idKhongGian: Int, idO: Int) =
+        activity.tam("TẠM: GD-10 Thành tựu (bước 9)")
+
+    fun moAnhDaiDien(activity: Activity, idKhongGian: Int, idO: Int) =
+        activity.tam("TẠM: GD-11 Ảnh đại diện (bước 9)")
+
+    fun moQuanHeChaMe(activity: Activity, idKhongGian: Int, idO: Int) =
+        activity.tam("TẠM: GD-12 Quan hệ cha/mẹ")
+
+    fun moQuanHeHonNhan(activity: Activity, idKhongGian: Int, idO: Int) =
+        activity.tam("TẠM: GD-13 Quan hệ hôn nhân")
 
     fun moThemO(activity: Activity, idKhongGian: Int) =
         activity.tam("TẠM: GD-07 Thêm thành viên (bước 8)")

@@ -17,11 +17,12 @@ class FakeRepository : Repository {
     private val quanHeChaMe = SampleData.quanHeChaMe.toMutableList()
     private val honNhan = SampleData.honNhan.toMutableList()
     private val avatar = SampleData.avatar.toMutableList()
-
     private var idHienTai: Int? = null
-
     /** Bật true để thử trạng thái "Lỗi kết nối" (mọi hàm đọc cây và danh sách trả lỗi). */
     var giaLapLoi: Boolean = false
+    private val cuocDoi = SampleData.cuocDoi.toMutableList()
+    private val binhLuan = SampleData.binhLuan.toMutableList()
+    private val thanhTuu = SampleData.thanhTuu.toMutableList()
 
     private fun loi(l: LoiApp, tb: String) = Kq.Loi(l, tb)
     private fun matKetNoi() = loi(LoiApp.MAT_KET_NOI, "Không thể tải dữ liệu. Vui lòng kiểm tra kết nối.")
@@ -90,7 +91,11 @@ class FakeRepository : Repository {
         if (giaLapLoi) return matKetNoi()
         val tk = nhanDang() ?: return loi(LoiApp.CHUA_DANG_NHAP, "Bạn chưa đăng nhập")
         val ds = thanVien
-            .filter { it.idTaiKhoan == tk.idTaiKhoan && it.trangThai == TrangThaiThanhVien.HOAT_DONG }
+            .filter {
+                it.idTaiKhoan == tk.idTaiKhoan &&
+                        it.trangThai == TrangThaiThanhVien.HOAT_DONG &&
+                        it.vaiTro != VaiTro.KHACH_TAM
+            }
             .mapNotNull { tv ->
                 khongGian.firstOrNull { it.idKhongGian == tv.idKhongGian }?.let { KhongGianCuaToi(it, tv.vaiTro) }
             }
@@ -186,4 +191,136 @@ class FakeRepository : Repository {
             )
         )
     }
+
+    // ---------------- Chi tiết Ô (GD-08) ----------------
+
+    private fun layO(idO: Int) = oThanhVien.firstOrNull { it.idOThanhVien == idO }
+    private fun thayO(moi: OThanhVien) { oThanhVien[oThanhVien.indexOfFirst { it.idOThanhVien == moi.idOThanhVien }] = moi }
+
+    override fun chiTietO(idO: Int): Kq<ChiTietO> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        val toi = vaiTroCuaToi(o.idKhongGian) ?: return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền xem không gian này")
+        val kg = khongGian.first { it.idKhongGian == o.idKhongGian }
+        if (kg.cheDoRiengTu && toi.vaiTro == VaiTro.KHACH_TAM)
+            return loi(LoiApp.KHONG_GIAN_RIENG_TU, "Không gian này đang ở chế độ riêng tư")
+
+        fun nguoi(id: Int, nhan: String?) = oThanhVien.first { it.idOThanhVien == id }
+            .let { NguoiLienQuan(it.idOThanhVien, it.hoTen, nhan, it.conSong) }
+
+        val chaMe = quanHeChaMe.filter { it.idCon == idO }
+            .sortedWith(compareBy({ it.loai.ordinal }, { it.idPhuHuynh }))
+            .map { nguoi(it.idPhuHuynh, it.loai.nhan) }
+        val voChong = honNhan.filter { it.idChong == idO || it.idVo == idO }
+            .sortedWith(compareBy({ it.thuTuHonNhan ?: Int.MAX_VALUE }, { it.id }))
+            .map { nguoi(if (it.idChong == idO) it.idVo else it.idChong, it.trangThai.nhan) }
+        val con = quanHeChaMe.filter { it.idPhuHuynh == idO }.map { it.idCon }.distinct()
+            .map { id -> oThanhVien.first { it.idOThanhVien == id } }
+            .sortedWith(compareBy({ it.ngaySinh ?: java.time.LocalDate.MAX }, { it.idOThanhVien }))
+            .map { nguoi(it.idOThanhVien, null) }
+        return Kq.Ok(ChiTietO(o, toi, chaMe, voChong, con))
+    }
+
+    override fun datTuVong(idO: Int, conSong: Boolean, ngayMat: java.time.LocalDate?): Kq<OThanhVien> {
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        if (vaiTroCuaToi(o.idKhongGian)?.vaiTro?.laQuanTri != true)
+            return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền thực hiện thao tác này")
+        if (!conSong) {
+            if (ngayMat == null) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Vui lòng chọn ngày mất")
+            if (ngayMat.isAfter(java.time.LocalDate.now()))
+                return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày mất không thể ở tương lai")
+            if (o.ngaySinh != null && ngayMat.isBefore(o.ngaySinh))
+                return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày mất không thể trước ngày sinh")
+        }
+        val moi = o.copy(conSong = conSong, ngayMat = if (conSong) null else ngayMat)
+        thayO(moi)
+        return Kq.Ok(moi)
+    }
+
+    override fun datTruongToc(idO: Int, laTruongToc: Boolean): Kq<OThanhVien> {
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        if (vaiTroCuaToi(o.idKhongGian)?.vaiTro != VaiTro.ADMIN)
+            return loi(LoiApp.KHONG_CO_QUYEN, "Chỉ Admin được gán hoặc thu hồi danh hiệu Trưởng tộc")
+        val moi = o.copy(laTruongToc = laTruongToc)
+        thayO(moi)
+        return Kq.Ok(moi)
+    }
+
+    // ---------------- Xóa Ô ----------------
+
+    /**
+     * Tập Ô thuộc cụm chính của `ids`: cụm chứa Ô có id nhỏ nhất trong số Ô có ít nhất một đường nối.
+     * Phản chiếu cách LayoutEngine chọn cụm chính. (8b: hôn nhân đã ẩn cũng phải bị bỏ ở đây.)
+     */
+    private fun cumChinh(ids: Set<Int>): Set<Int> {
+        val ke = HashMap<Int, MutableList<Int>>()
+        fun noi(a: Int, b: Int) {
+            if (a == b) return
+            ke.getOrPut(a) { mutableListOf() }.add(b)
+            ke.getOrPut(b) { mutableListOf() }.add(a)
+        }
+        quanHeChaMe.filter { it.hienThiLienKet && it.idCon in ids && it.idPhuHuynh in ids }
+            .forEach { noi(it.idCon, it.idPhuHuynh) }
+        honNhan.filter { it.idChong in ids && it.idVo in ids }.forEach { noi(it.idChong, it.idVo) }
+        val goc = ke.keys.minOrNull() ?: return emptySet()
+        val thay = HashSet<Int>().apply { add(goc) }
+        val ngan = ArrayDeque<Int>().apply { add(goc) }
+        while (ngan.isNotEmpty()) {
+            for (v in ke[ngan.removeLast()].orEmpty()) if (thay.add(v)) ngan.add(v)
+        }
+        return thay
+    }
+
+    private fun quyenXoa(o: OThanhVien): Kq.Loi? =
+        if (vaiTroCuaToi(o.idKhongGian)?.vaiTro?.laQuanTri == true) null
+        else loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền xóa thành viên")
+
+    override fun xemTruocXoaO(idO: Int): Kq<TacDongXoa> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenXoa(o)?.let { return it }
+        val idCD = cuocDoi.filter { it.idOThanhVien == idO }.map { it.idCuocDoi }.toSet()
+        val ids = oThanhVien.filter { it.idKhongGian == o.idKhongGian }.map { it.idOThanhVien }.toSet()
+        val tach = (cumChinh(ids) - idO - cumChinh(ids - idO)).sorted().mapNotNull { layO(it)?.hoTen }
+        return Kq.Ok(
+            TacDongXoa(
+                hoTen = o.hoTen,
+                soChaMe = quanHeChaMe.count { it.idCon == idO },
+                soVoChong = honNhan.count { it.idChong == idO || it.idVo == idO },
+                soCon = quanHeChaMe.count { it.idPhuHuynh == idO },
+                soThanhTuu = thanhTuu.count { it.idOThanhVien == idO },
+                soBinhLuan = binhLuan.count { it.idCuocDoi in idCD },
+                soTieuSu = idCD.size,
+                tachKhoiCayChinh = tach
+            )
+        )
+    }
+
+    override fun xoaO(idO: Int): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenXoa(o)?.let { return it }
+        // Thứ tự như trong SQL (không dùng ON DELETE CASCADE): dữ liệu con trước, Ô sau cùng.
+        val idCD = cuocDoi.filter { it.idOThanhVien == idO }.map { it.idCuocDoi }.toSet()
+        binhLuan.removeAll { it.idCuocDoi in idCD }
+        cuocDoi.removeAll { it.idOThanhVien == idO }
+        thanhTuu.removeAll { it.idOThanhVien == idO }
+        avatar.removeAll { it.idOThanhVien == idO }
+        quanHeChaMe.removeAll { it.idCon == idO || it.idPhuHuynh == idO }
+        honNhan.removeAll { it.idChong == idO || it.idVo == idO }
+        // Tài khoản đang được gán Ô này: gỡ gán. Thành viên rơi về Thành viên hờ (cần có Ô mới là Thành viên).
+        for (i in thanVien.indices) {
+            val t = thanVien[i]
+            if (t.idOThanhVien == idO) {
+                thanVien[i] = t.copy(
+                    idOThanhVien = null,
+                    vaiTro = if (t.vaiTro == VaiTro.THANH_VIEN) VaiTro.THANH_VIEN_HO else t.vaiTro
+                )
+            }
+        }
+        oThanhVien.removeAll { it.idOThanhVien == idO }
+        return Kq.Ok(Unit)
+    }
+
+
 }
