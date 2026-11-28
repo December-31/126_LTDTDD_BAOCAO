@@ -34,10 +34,18 @@ enum class KieuNet { LIEN, DUT }
 /** x, y là góc trên trái của thẻ. doi = null với Ô trong khu "Chưa rõ vị trí". */
 class TheTrenCay(val id: Int, val x: Float, val y: Float, val doi: Int?)
 
+/** Quan hệ mà một đoạn nối đại diện. Chỉ các đoạn "chọn được" (nhấn giữ để ẩn) mới có. */
+sealed class NutQuanHe {
+    /** Đoạn dẫn vào thẻ con. idPhuHuynh: các dòng QuanHeChaMe của người con mà đoạn này biểu diễn (1 hoặc 2). */
+    class ChaMeCon(val idCon: Int, val idPhuHuynh: List<Int>) : NutQuanHe()
+    class HonNhan(val idHonNhan: Int, val idChong: Int, val idVo: Int) : NutQuanHe()
+}
+
 class DoanNoi(
     val x1: Float, val y1: Float, val x2: Float, val y2: Float,
     val kieu: KieuNet,
-    val canHuyet: Boolean
+    val canHuyet: Boolean,
+    val nut: NutQuanHe? = null
 )
 
 class Diem(val x: Float, val y: Float)
@@ -60,7 +68,21 @@ class KetQuaBoCuc(
     val rong: Float,
     val cao: Float,
     val canhBao: List<String>
-)
+) {
+    /** Đoạn chọn được gần điểm (x, y) nhất, trong khoảng dungSai (cùng đơn vị dp với bố cục). */
+    fun timNut(x: Float, y: Float, dungSai: Float): NutQuanHe? {
+        var tot: NutQuanHe? = null
+        var gan = dungSai
+        for (n in net) {
+            val nut = n.nut ?: continue
+            val dx = x - x.coerceIn(minOf(n.x1, n.x2), maxOf(n.x1, n.x2))
+            val dy = y - y.coerceIn(minOf(n.y1, n.y2), maxOf(n.y1, n.y2))
+            val d = kotlin.math.sqrt(dx * dx + dy * dy)
+            if (d <= gan) { gan = d; tot = nut }
+        }
+        return tot
+    }
+}
 
 object LayoutEngine {
 
@@ -145,9 +167,9 @@ private class Khoi(val ms: List<Int>, val hns: List<QHeHonNhan?>) {
 }
 
 private class Tinh(
-    oThanhVien: List<OThanhVien>,
-    quanHeChaMe: List<QuanHeChaMe>,
-    honNhan: List<QHeHonNhan>,
+    private val oThanhVien: List<OThanhVien>,
+    private val quanHeChaMe: List<QuanHeChaMe>,
+    private val honNhan: List<QHeHonNhan>,
     private val ch: CauHinhCay
 ) {
     private val byId = oThanhVien.associateBy { it.idOThanhVien }
@@ -155,10 +177,24 @@ private class Tinh(
     private val linksAll = quanHeChaMe
         .filter { it.idCon in ids && it.idPhuHuynh in ids && it.idCon != it.idPhuHuynh }
         .distinctBy { it.idCon to it.idPhuHuynh }
-    private val linksVis = linksAll.filter { it.hienThiLienKet }          // chỉ QuanHeChaMe, theo quyết định
-    private val marriages = honNhan
+    /** Mọi hôn nhân hợp lệ, kể cả đang ẩn: dùng cho số đời và cận huyết. */
+    private val marriagesAll = honNhan
         .filter { it.idChong in ids && it.idVo in ids && it.idChong != it.idVo }
         .distinctBy { setOf(it.idChong, it.idVo) }
+    private val marriagesAn = marriagesAll.filter { !it.hienThiLienKet }
+    /** Hôn nhân đang hiện: dùng cho bố cục và đường nối. */
+    private val marriages = marriagesAll.filter { it.hienThiLienKet }
+
+    /**
+     * Ẩn hôn nhân: người thuộc dòng máu của cây ở lại; người kia và con của hai người
+     * đi vào cụm "Quan hệ ẩn". Với mỗi người con có cả hai dòng cha/mẹ thuộc hôn nhân bị ẩn, bỏ dòng nối tới
+     * bên ở lại (dòng nối tới bên đi vẫn giữ, để người vợ/chồng "đi lấy" còn nối với con cháu).
+     */
+    private val benOLai: Map<Int, Int> by lazy { xacDinhBenOLai() }
+
+    private val linksVis = linksAll
+        .filter { it.hienThiLienKet }                    // dòng QuanHeChaMe đã ẩn
+        .filterNot { l -> boDoHonNhanAn(l) }             // dòng nối tới bên ở lại của hôn nhân đã ẩn
 
     private val canhBao = mutableListOf<String>()
     private val doi = HashMap<Int, Int>()
@@ -191,7 +227,9 @@ private class Tinh(
 
         var y = ch.dem
         thuTu.forEachIndexed { i, c ->
-            y = xepCum(c, y, if (i == 0) null else tieuDeCum(c)) + 28f
+            val tieuDe = if (i == 0) null else tieuDeCum(c)
+            if (tieuDe == "Quan hệ ẩn") return@forEachIndexed   // cụm ẩn không vẽ lên cây (xem sheet GD-20)
+            y = xepCum(c, y, tieuDe) + 28f
         }
         y = xepChuaRoViTri(y)
 
@@ -234,10 +272,10 @@ private class Tinh(
         return out
     }
 
-    /** Số đời tính theo MỌI dòng nối, kể cả dòng đang ẩn (QUYET_DINH 5.3). */
+    /** Số đời tính theo MỌI dòng nối, kể cả dòng đang ẩn. */
     private fun tinhDoi() {
         ids.forEach { doi[it] = 0 }
-        val adjAll = adjacency(linksAll, marriages)
+        val adjAll = adjacency(linksAll, marriagesAll)
         coLienKet.addAll(adjAll.keys)
 
         var lap = 0
@@ -248,7 +286,7 @@ private class Tinh(
                 val can = doi[l.idPhuHuynh]!! + 1
                 if (doi[l.idCon]!! < can) { doi[l.idCon] = can; doiDuoc = true }
             }
-            for (m in marriages) {
+            for (m in marriagesAll) {
                 val mx = maxOf(doi[m.idChong]!!, doi[m.idVo]!!)
                 if (doi[m.idChong]!! != mx) { doi[m.idChong] = mx; doiDuoc = true }
                 if (doi[m.idVo]!! != mx) { doi[m.idVo] = mx; doiDuoc = true }
@@ -261,6 +299,35 @@ private class Tinh(
             val mn = comp.minOf { doi[it]!! }
             comp.forEach { doi[it] = doi[it]!! - mn + 1 }
         }
+    }
+
+    // ---------------------------------------------------------------- hôn nhân bị ẩn
+
+    private fun boDoHonNhanAn(l: QuanHeChaMe): Boolean {
+        if (marriagesAn.isEmpty()) return false
+        return marriagesAn.any { m ->
+            val oLai = benOLai[m.id] ?: return@any false
+            val dua = if (oLai == m.idChong) m.idVo else m.idChong
+            l.idPhuHuynh == oLai && linksAll.any { it.idCon == l.idCon && it.idPhuHuynh == dua }
+        }
+    }
+
+    /** Chạy thử bố cục với mọi hôn nhân đang hiện để biết bên nào được gắn làm "chính" (có cha mẹ trong cây). */
+    private fun xacDinhBenOLai(): Map<Int, Int> {
+        if (marriagesAn.isEmpty()) return emptyMap()
+        val thu = Tinh(oThanhVien, quanHeChaMe, honNhan.map { it.copy(hienThiLienKet = true) }, ch)
+        thu.tinhDoi(); thu.taoKhoi(); thu.ganChaMe()
+        return marriagesAn.associate { m -> m.id to thu.nguoiOLai(m) }
+    }
+
+    private fun nguoiOLai(m: QHeHonNhan): Int {
+        val k = khoiCua[m.idChong] ?: return minOf(m.idChong, m.idVo)
+        if (k.chinh != null) {
+            val chinh = k.ms[k.chiSoChinh]
+            if (chinh == m.idChong || chinh == m.idVo) return chinh
+        }
+        // không bên nào là người gắn chính (gốc cây, hoặc người gắn chính là một vợ/chồng khác): lấy bên đứng trước trong khối
+        return listOf(m.idChong, m.idVo).minByOrNull { k.ms.indexOf(it) }!!
     }
 
     // ---------------------------------------------------------------- cận huyết
@@ -422,11 +489,12 @@ private class Tinh(
     // ---------------------------------------------------------------- một cụm: xếp, tính hàng, sinh đường
 
     /**
-     * Tiêu đề cụm nằm ngoài cây chính: có dòng cha/mẹ–con đã ẩn nối ra ngoài cụm thì là "Quan hệ ẩn",
+     * Tiêu đề cụm nằm ngoài cây chính: có dòng cha/mẹ–con hoặc hôn nhân đã ẩn nối ra ngoài cụm thì là "Quan hệ ẩn",
      * ngược lại là "Chưa nối với cây chính" (ví dụ sau khi xóa một Ô).
      */
     private fun tieuDeCum(c: Set<Int>): String {
-        val doAn = linksAll.any { !it.hienThiLienKet && ((it.idCon in c) != (it.idPhuHuynh in c)) }
+        val doAn = linksAll.any { !it.hienThiLienKet && ((it.idCon in c) != (it.idPhuHuynh in c)) } ||
+                marriagesAn.any { (it.idChong in c) != (it.idVo in c) }
         return if (doAn) "Quan hệ ẩn" else "Chưa nối với cây chính"
     }
 
@@ -499,9 +567,12 @@ private class Tinh(
         for (id in cum) oThe.add(TheTrenCay(id, x[id]!! - nua, dinhHang[doi[id]!!]!!, doi[id]))
 
         // ---- đường nối
-        fun lien(x1: Float, y1: Float, x2: Float, y2: Float, dut: Boolean = false, do_: Boolean = false) {
+        fun lien(
+            x1: Float, y1: Float, x2: Float, y2: Float,
+            dut: Boolean = false, do_: Boolean = false, nut: NutQuanHe? = null
+        ) {
             if (x1 == x2 && y1 == y2) return
-            (if (dut) oNetDut else oNetLien).add(DoanNoi(x1, y1, x2, y2, if (dut) KieuNet.DUT else KieuNet.LIEN, do_))
+            (if (dut) oNetDut else oNetLien).add(DoanNoi(x1, y1, x2, y2, if (dut) KieuNet.DUT else KieuNet.LIEN, do_, nut))
         }
         fun dinh(id: Int) = dinhHang[doi[id]!!]!!
 
@@ -525,6 +596,8 @@ private class Tinh(
 
         fun dutCua(g: Gan) = g.links.all { it.loai == LoaiQuanHe.NUOI }
 
+        class MucCon(val cx: Float, val ct: Float, val dut: Boolean, val nut: NutQuanHe)
+
         for (k in khois) {
             val t = dinh(k.ms[0])
             val day = t + h
@@ -534,7 +607,7 @@ private class Tinh(
                 val m = k.hns[1]!!
                 val x0 = x[k.ms[0]]!! + nua
                 val x1 = x[k.ms[1]]!! - nua
-                lien(x0, t + h / 2, x1, t + h / 2, do_ = canHuyet(m))
+                lien(x0, t + h / 2, x1, t + h / 2, do_ = canHuyet(m), nut = NutQuanHe.HonNhan(m.id, m.idChong, m.idVo))
                 if (m.trangThai == TrangThaiHonNhan.DA_LY_HON) oDauHuy.add(Diem((x0 + x1) / 2, t + h / 2))
             } else if (k.ms.size >= 3) {
                 val yM = day + ch.honNhanDuoiThe
@@ -543,7 +616,7 @@ private class Tinh(
                     val m = k.hns[j] ?: continue
                     val dc = canHuyet(m)
                     lien(x[k.ms[j - 1]]!!, yM, x[k.ms[j]]!!, yM, do_ = dc)
-                    lien(x[k.ms[j]]!!, day, x[k.ms[j]]!!, yM, do_ = dc)
+                    lien(x[k.ms[j]]!!, day, x[k.ms[j]]!!, yM, do_ = dc, nut = NutQuanHe.HonNhan(m.id, m.idChong, m.idVo))
                     oCham.add(Diem(x[k.ms[j]]!!, yM))
                     if (m.trangThai == TrangThaiHonNhan.DA_LY_HON) oDauHuy.add(Diem(x[k.ms[j]]!!, day + ch.honNhanDuoiThe / 2))
                 }
@@ -555,12 +628,16 @@ private class Tinh(
                 val bar = thanhNgang(k, c) ?: continue
                 val (sx, sy) = xuatPhat(k, c)
                 val mucCon = c.con.map { kc ->
-                    Triple(x[kc.ms[kc.chiSoChinh]]!!, dinh(kc.ms[kc.chiSoChinh]), dutCua(kc.chinh!!))
+                    val idCon = kc.ms[kc.chiSoChinh]
+                    MucCon(
+                        x[idCon]!!, dinh(idCon), dutCua(kc.chinh!!),
+                        NutQuanHe.ChaMeCon(idCon, kc.chinh!!.links.map { it.idPhuHuynh })
+                    )
                 }
-                lien(sx, sy, sx, bar, dut = mucCon.all { it.third })
-                for ((cx, ct, dut) in mucCon) {
-                    lien(sx, bar, cx, bar, dut = dut)
-                    lien(cx, bar, cx, ct, dut = dut)
+                lien(sx, sy, sx, bar, dut = mucCon.all { it.dut })
+                for (mc in mucCon) {
+                    lien(sx, bar, mc.cx, bar, dut = mc.dut)
+                    lien(mc.cx, bar, mc.cx, mc.ct, dut = mc.dut, nut = mc.nut)
                 }
             }
 
@@ -572,7 +649,8 @@ private class Tinh(
                 val dut = dutCua(g)
                 lien(sx, sy, sx, bar, dut = dut)
                 lien(sx, bar, cx, bar, dut = dut)
-                lien(cx, bar, cx, dinh(k.ms[i]), dut = dut)
+                lien(cx, bar, cx, dinh(k.ms[i]), dut = dut,
+                    nut = NutQuanHe.ChaMeCon(k.ms[i], g.links.map { it.idPhuHuynh }))
             }
 
             // nền nhóm con của từng cuộc hôn nhân (chỉ khi một người có nhiều hôn nhân)

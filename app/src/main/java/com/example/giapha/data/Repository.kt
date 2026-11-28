@@ -180,4 +180,10 @@ interface Repository {
     /** Chỉ xóa dòng hôn nhân, không xóa Ô nào và không đụng quan hệ cha/mẹ–con. */
     fun xoaHonNhan(id: Int): Kq<Unit>
 
+    // ---- Ẩn/hiện lại quan hệ (8b) dành cho Admin/Quản lý ----
+    /** an = true: ẩn; false: hiện lại. Áp cho mọi dòng QuanHeChaMe của idCon với các idPhuHuynh (nét T chung = 2 dòng). */
+    fun anQuanHeChaMe(idCon: Int, idPhuHuynh: List<Int>, an: Boolean): Kq<Unit>
+    /** an = true: ẩn; false: hiện lại. Dùng QHeHonNhan.HienThiLienKet. */
+    fun anHonNhan(idHonNhan: Int, an: Boolean): Kq<Unit>
+
 }

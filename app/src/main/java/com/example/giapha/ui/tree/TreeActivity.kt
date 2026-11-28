@@ -12,11 +12,18 @@ import android.widget.PopupMenu
 import androidx.appcompat.app.AppCompatActivity
 import com.example.giapha.R
 import com.example.giapha.data.DuLieuCay
+import com.example.giapha.data.DuongAn
+import com.example.giapha.data.danhSachDuongAn
 import com.example.giapha.data.Kq
 import com.example.giapha.data.Services
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.snackbar.Snackbar
 import com.example.giapha.databinding.ActivityTreeBinding
+import com.example.giapha.databinding.ItemQuanHeAnBinding
+import com.example.giapha.databinding.SheetQuanHeAnBinding
 import com.example.giapha.model.VaiTro
 import com.example.giapha.tree.LayoutEngine
+import com.example.giapha.tree.NutQuanHe
 import com.example.giapha.ui.Routes
 import com.example.giapha.ui.common.applyBottomMarginInset
 import com.example.giapha.ui.common.setAction
@@ -33,6 +40,7 @@ class TreeActivity : AppCompatActivity() {
     private var idKhongGian = 0
     private var vaiTro: VaiTro? = null
     private var daCoCay = false
+    private var duHienTai: DuLieuCay? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +52,7 @@ class TreeActivity : AppCompatActivity() {
         b.fab.applyBottomMarginInset()
         b.fab.setOnClickListener { Routes.moThemO(this, idKhongGian) }
         b.viewport.khiChamThe = { idO -> Routes.moChiTietO(this, idKhongGian, idO) }
+        b.viewport.khiBamAn = { nut -> anQuanHe(nut) }
     }
 
     override fun onResume() {
@@ -65,6 +74,8 @@ class TreeActivity : AppCompatActivity() {
 
     private fun hienCay(du: DuLieuCay) {
         vaiTro = du.toi.vaiTro
+        duHienTai = du
+        b.viewport.choPhepAn = du.toi.vaiTro.laQuanTri
         b.appBar.tvTitle.text = du.khongGian.tenKhongGian
         datNutBenPhai(du.khongGian.cheDoRiengTu)
         b.fab.visibility = if (du.toi.vaiTro.laQuanTri) View.VISIBLE else View.GONE
@@ -79,6 +90,74 @@ class TreeActivity : AppCompatActivity() {
         }
         b.viewport.datDuLieu(LayoutEngine.tinh(du), du.oThanhVien)
         daCoCay = true
+    }
+
+    // ---- ẩn quan hệ (nhấn giữ đường nối → nhãn "Ẩn" → thanh "Hoàn tác") ----
+
+    private fun datAn(nut: NutQuanHe, an: Boolean): Kq<Unit> = when (nut) {
+        is NutQuanHe.ChaMeCon -> repo.anQuanHeChaMe(nut.idCon, nut.idPhuHuynh, an)
+        is NutQuanHe.HonNhan -> repo.anHonNhan(nut.idHonNhan, an)
+    }
+
+    private fun moTa(nut: NutQuanHe): String {
+        val ten = { id: Int -> duHienTai?.oThanhVien?.firstOrNull { it.idOThanhVien == id }?.hoTen ?: "?" }
+        return when (nut) {
+            is NutQuanHe.ChaMeCon -> "${ten(nut.idCon)} — ${nut.idPhuHuynh.joinToString(" & ") { ten(it) }}"
+            is NutQuanHe.HonNhan -> "${ten(nut.idChong)} — ${ten(nut.idVo)}"
+        }
+    }
+
+    private fun anQuanHe(nut: NutQuanHe) {
+        val mota = moTa(nut)
+        when (val r = datAn(nut, true)) {
+            is Kq.Loi -> Snackbar.make(b.root, r.thongBao, Snackbar.LENGTH_LONG).show()
+            is Kq.Ok -> {
+                tai()
+                val bar = Snackbar.make(b.root, "Đã ẩn: $mota", Snackbar.LENGTH_LONG)
+                    .setAction("Hoàn tác") { hoanTacAn(nut) }
+                    .setActionTextColor(getColor(R.color.peach_light))
+                if (b.fab.visibility == View.VISIBLE) bar.anchorView = b.fab
+                bar.show()
+            }
+        }
+    }
+
+    private fun hoanTacAn(nut: NutQuanHe) {
+        val r = datAn(nut, false)
+        if (r is Kq.Loi) Snackbar.make(b.root, r.thongBao, Snackbar.LENGTH_LONG).show()
+        tai()
+    }
+
+    // ---- GD-20: bottom sheet "Quan hệ đã ẩn (n)" ----
+
+    private fun moQuanHeAn() {
+        val sheet = BottomSheetDialog(this)
+        val sb = SheetQuanHeAnBinding.inflate(layoutInflater)
+        sheet.setContentView(sb.root)
+        (sb.root.parent as? View)?.setBackgroundColor(Color.TRANSPARENT)   // để thấy góc bo của bg_sheet
+        veDanhSachAn(sb)
+        sheet.show()
+    }
+
+    private fun veDanhSachAn(sb: SheetQuanHeAnBinding) {
+        val ds = duHienTai?.let { danhSachDuongAn(it) }.orEmpty()
+        sb.tvTitle.text = "Quan hệ đã ẩn (${ds.size})"
+        sb.tvEmpty.visibility = if (ds.isEmpty()) View.VISIBLE else View.GONE
+        sb.list.removeAllViews()
+        for (d in ds) {
+            val dong = ItemQuanHeAnBinding.inflate(layoutInflater, sb.list, false)
+            dong.tvTen.text = d.tenCap
+            dong.tvLoai.text = d.loai
+            dong.btnHienLai.setOnClickListener { hienLai(d); veDanhSachAn(sb) }
+            sb.list.addView(dong.root)
+        }
+    }
+
+    private fun hienLai(d: DuongAn) {
+        val r = if (d.idHonNhan != null) repo.anHonNhan(d.idHonNhan, false)
+        else repo.anQuanHeChaMe(d.idCon!!, d.idPhuHuynh, false)
+        if (r is Kq.Loi) android.widget.Toast.makeText(this, r.thongBao, android.widget.Toast.LENGTH_LONG).show()
+        tai()      // cây phía sau vẽ lại; duHienTai được cập nhật trước khi sheet vẽ lại danh sách
     }
 
     // ---- thanh tiêu đề: biểu tượng riêng tư (nếu có) + ba chấm ----
@@ -115,6 +194,10 @@ class TreeActivity : AppCompatActivity() {
         val muc = mutableListOf<Pair<String, () -> Unit>>()
         muc += "Danh sách thành viên" to { Routes.moDanhSachThanhVien(this, idKhongGian) }
         if (vt != VaiTro.KHACH_TAM) muc += "Tạo mã lời mời" to { Routes.moMaMoi(this, idKhongGian) }
+        if (vt.laQuanTri) {
+            val n = duHienTai?.let { danhSachDuongAn(it).size } ?: 0
+            muc += "Quan hệ đã ẩn ($n)" to { moQuanHeAn() }
+        }
         if (vt == VaiTro.ADMIN) {
             muc += "Cài đặt Không gian" to { Routes.moCaiDatKhongGian(this, idKhongGian) }
             muc += "Quản lý vai trò" to { Routes.moQuanLyVaiTro(this, idKhongGian) }

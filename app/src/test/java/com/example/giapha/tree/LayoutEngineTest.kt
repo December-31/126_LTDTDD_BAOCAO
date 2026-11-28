@@ -27,7 +27,11 @@ class LayoutEngineTest {
     fun moiOMotThe() {
         for (kg in tatCa) {
             val c = cay(kg)
-            assertEquals("không gian $kg", c.o.map { it.idOThanhVien }.sorted(), c.ket.the.map { it.id }.sorted())
+            val tatCaId = c.o.map { it.idOThanhVien }.toSet()
+            val coThe = c.ket.the.map { it.id }.toSet()
+            val coDongAn = SampleData.quanHeChaMe.any { !it.hienThiLienKet && it.idCon in tatCaId }
+            if (coDongAn) assertTrue("không gian $kg", coThe.size < tatCaId.size && tatCaId.containsAll(coThe))
+            else assertEquals("không gian $kg", tatCaId, coThe)
         }
     }
 
@@ -63,16 +67,13 @@ class LayoutEngineTest {
         assertEquals(2, d[3])     // Nguyễn Văn Hòa
         assertEquals(4, d[18])    // Nguyễn Minh Khôi
         assertEquals(5, d[21])    // Nguyễn Gia Hân
-        assertEquals(3, d[15])    // đầu nhánh tách vẫn giữ số đời của mình
     }
 
     @Test
     fun nhanhTachNamRiengVaCoTieuDe() {
         val k = cay(1).ket
-        val chinh = k.the.first { it.id == 1 }
-        val dau = k.the.first { it.id == 15 }     // Nguyễn Công Đạt, hai dòng cha mẹ đang ẩn
-        assertTrue("nhánh tách phải nằm dưới cây chính", dau.y > chinh.y + 600)
-        assertEquals(1, k.tieuDe.count { it.chu == "Quan hệ ẩn" })               // nhánh Nguyễn Công Đạt
+        assertTrue("nhánh Nguyễn Công Đạt đang ẩn thì không vẽ", k.the.none { it.id == 15 })
+        assertEquals(0, k.tieuDe.count { it.chu == "Quan hệ ẩn" })              // nhánh Nguyễn Công Đạt
         assertEquals(1, k.tieuDe.count { it.chu == "Chưa nối với cây chính" })   // cụm Võ Văn Tâm, Võ Minh Quân
     }
 
@@ -100,6 +101,57 @@ class LayoutEngineTest {
         assertEquals(2, k.the.size)
         assertTrue(k.the.all { it.doi == null })
         assertTrue(k.tieuDe.any { it.chu == "Chưa rõ vị trí" })
+    }
+
+    // ---- 8b lượt 1: ẩn hôn nhân và đoạn nối chọn được ----
+
+    /** Họ Nguyễn, ẩn hôn nhân Nam (8) – Hạnh (9), id hôn nhân 5. */
+    private fun cayAnHonNhanNamHanh(): KetQuaBoCuc {
+        val o = SampleData.oThanhVien.filter { it.idKhongGian == 1 }
+        val ids = o.map { it.idOThanhVien }.toSet()
+        val qh = SampleData.quanHeChaMe.filter { it.idCon in ids && it.idPhuHuynh in ids }
+        val hn = SampleData.honNhan.filter { it.idChong in ids && it.idVo in ids }
+            .map { if (it.id == 5) it.copy(hienThiLienKet = false) else it }
+        return LayoutEngine.tinh(o, qh, hn)
+    }
+
+    @Test
+    fun anHonNhanDuaBenDiLayChongVaConVaoCumAn() {
+        val k = cayAnHonNhanNamHanh()
+        val the = k.the.associateBy { it.id }
+        val nam = the[8]!!
+        assertTrue(nam.id == 8)
+        for (id in listOf(9, 18, 19, 20, 21)) assertTrue("Ô $id không được vẽ", id !in the)
+        assertEquals(cay(1).ket.the.size - 5, k.the.size)
+        assertEquals(0, k.tieuDe.count { it.chu == "Quan hệ ẩn" })
+        // đường hôn nhân đã ẩn không còn trong danh sách đoạn nối
+        assertTrue(k.net.none { (it.nut as? NutQuanHe.HonNhan)?.idHonNhan == 5 })
+    }
+
+    @Test
+    fun honNhanChuaAnThiDoanNoiChonDuoc() {
+        val k = cay(1).ket
+        val honNhan5 = k.net.filter { (it.nut as? NutQuanHe.HonNhan)?.idHonNhan == 5 }
+        assertEquals(1, honNhan5.size)
+        val d = honNhan5[0]
+        val nut = k.timNut((d.x1 + d.x2) / 2, (d.y1 + d.y2) / 2, 4f)
+        assertEquals(5, (nut as NutQuanHe.HonNhan).idHonNhan)
+    }
+
+    @Test
+    fun doanDanVaoTheConMangDungCaHaiDongChaMe() {
+        val k = cay(1).ket
+        val khoi = k.net.mapNotNull { it.nut as? NutQuanHe.ChaMeCon }.first { it.idCon == 18 }
+        assertEquals(setOf(8, 9), khoi.idPhuHuynh.toSet())     // nét T chung = hai dòng cha và mẹ
+        val ma = k.the.first { it.id == 18 }
+        val gan = k.timNut(ma.x + 32f, ma.y - 6f, 4f) as NutQuanHe.ChaMeCon
+        assertEquals(18, gan.idCon)
+    }
+
+    @Test
+    fun khongChamTrungDuongThiKhongChonDuoc() {
+        val k = cay(1).ket
+        assertEquals(null, k.timNut(-500f, -500f, 6f))
     }
 
     @Test

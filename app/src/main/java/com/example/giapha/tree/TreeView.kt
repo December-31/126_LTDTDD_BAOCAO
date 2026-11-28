@@ -31,6 +31,8 @@ class TreeView @JvmOverloads constructor(
         const val CHU_TIEU_DE = 12f
         val XANH_NHAT = Color.parseColor("#DCEBD2")   // avatar + nền nhóm chẵn
         val KEM = Color.parseColor("#FBF1E4")         // nền nhóm lẻ
+        const val NHAN_AN_RONG = 48f                  // nhãn "Ẩn": kích thước theo dp màn hình, không đổi theo zoom
+        const val NHAN_AN_CAO = 28f
     }
 
     private val mat = context.resources.displayMetrics.density
@@ -62,6 +64,48 @@ class TreeView @JvmOverloads constructor(
         }?.id
     }
 
+    // ---- chọn đường nối để ẩn (nhấn giữ) ----
+
+    private var nutChon: NutQuanHe? = null
+    private var theChon: Set<Int> = emptySet()
+
+    val nutDangChon: NutQuanHe? get() = nutChon
+
+    /** Đoạn chọn được gần điểm chạm (pixel của view). dungSaiDp tính theo dp màn hình. */
+    fun timNutTai(xPx: Float, yPx: Float, dungSaiDp: Float): NutQuanHe? {
+        val kq = ketQua ?: return null
+        val s = mat * heSo
+        return kq.timNut(xPx / s, yPx / s, dungSaiDp / heSo)
+    }
+
+    /** null = bỏ chọn. Hai thẻ đầu mút được viền xanh. */
+    fun chonNut(nut: NutQuanHe?) {
+        nutChon = nut
+        theChon = when (nut) {
+            is NutQuanHe.ChaMeCon -> nut.idPhuHuynh.toSet() + nut.idCon
+            is NutQuanHe.HonNhan -> setOf(nut.idChong, nut.idVo)
+            null -> emptySet()
+        }
+        invalidate()
+    }
+
+    /** Tâm nhãn "Ẩn" theo dp của bố cục: bên phải đoạn dọc, hoặc phía trên đoạn ngang. */
+    private fun tamNhanAn(): Pair<Float, Float>? {
+        val n = ketQua?.net?.firstOrNull { it.nut === nutChon && nutChon != null } ?: return null
+        val mx = (n.x1 + n.x2) / 2
+        val my = (n.y1 + n.y2) / 2
+        return if (n.x1 == n.x2) (mx + (NHAN_AN_RONG / 2 + 10f) / heSo) to my
+        else mx to (my - (NHAN_AN_CAO / 2 + 10f) / heSo)
+    }
+
+    /** Chạm (pixel của view) có trúng nhãn "Ẩn" không. */
+    fun chamNhanAn(xPx: Float, yPx: Float, dungSaiDp: Float): Boolean {
+        val (cx, cy) = tamNhanAn() ?: return false
+        val s = mat * heSo
+        return Math.abs(xPx / s - cx) <= (NHAN_AN_RONG / 2 + dungSaiDp) / heSo &&
+                Math.abs(yPx / s - cy) <= (NHAN_AN_CAO / 2 + dungSaiDp) / heSo
+    }
+
     // ---- màu và cọ ----
     private val nau = ResourcesCompat.getColor(resources, R.color.brown_primary, null)
     private val nauDam = ResourcesCompat.getColor(resources, R.color.text_primary, null)
@@ -87,6 +131,16 @@ class TreeView @JvmOverloads constructor(
     private val cuVienThe = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 1f; color = vien }
     private val cuVienVang = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2f; color = vang }
     private val cuAvatar = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = XANH_NHAT }
+    private val xanhChon = ResourcesCompat.getColor(resources, R.color.green_mid, null)
+    private val cuChon = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 4f; color = xanhChon; strokeCap = Paint.Cap.ROUND
+    }
+    private val cuQuang = Paint(cuChon).apply { strokeWidth = 10f; alpha = 70 }
+    private val cuVienChon = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2.5f; color = xanhChon }
+    private val cuNhanAn = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = nau }
+    private val chuNhanAn = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE; textSize = 13f; typeface = fontDam; textAlign = Paint.Align.CENTER
+    }
     private val cuVuongMien = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = vang }
 
     private val chuCai = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -110,6 +164,8 @@ class TreeView @JvmOverloads constructor(
     /** Đặt dữ liệu. `o` là danh sách Ô cần để lấy tên, họ tên, Trưởng tộc. */
     fun datDuLieu(kq: KetQuaBoCuc, o: List<OThanhVien>, cauHinh: CauHinhCay = CauHinhCay()) {
         ketQua = kq
+        nutChon = null
+        theChon = emptySet()
         this.cauHinh = cauHinh
         oTheoId = o.associateBy { it.idOThanhVien }
         taoChuTen(kq)
@@ -153,9 +209,11 @@ class TreeView @JvmOverloads constructor(
         veDai(canvas, kq)
         veNen(canvas, kq)
         veNet(canvas, kq)
+        veDuongChon(canvas, kq)
         veChamVaDau(canvas, kq)
         for (t in kq.the) veThe(canvas, t)
         veTieuDe(canvas, kq)
+        veNhanAn(canvas)
 
         canvas.restore()
     }
@@ -202,6 +260,29 @@ class TreeView @JvmOverloads constructor(
         }
     }
 
+    private fun veDuongChon(c: Canvas, kq: KetQuaBoCuc) {
+        val chon = nutChon ?: return
+        for (n in kq.net) {
+            if (n.nut !== chon) continue
+            duong.reset()
+            duong.moveTo(n.x1, n.y1)
+            duong.lineTo(n.x2, n.y2)
+            c.drawPath(duong, cuQuang)
+            c.drawPath(duong, cuChon)
+        }
+    }
+
+    private fun veNhanAn(c: Canvas) {
+        val (cx, cy) = tamNhanAn() ?: return
+        c.save()
+        c.translate(cx, cy)
+        c.scale(1f / heSo, 1f / heSo)       // kích thước nhãn cố định trên màn hình
+        khung.set(-NHAN_AN_RONG / 2, -NHAN_AN_CAO / 2, NHAN_AN_RONG / 2, NHAN_AN_CAO / 2)
+        c.drawRoundRect(khung, NHAN_AN_CAO / 2, NHAN_AN_CAO / 2, cuNhanAn)
+        c.drawText("Ẩn", 0f, -(chuNhanAn.ascent() + chuNhanAn.descent()) / 2f, chuNhanAn)
+        c.restore()
+    }
+
     private fun veChamVaDau(c: Canvas, kq: KetQuaBoCuc) {
         for (d in kq.chamHonNhan) c.drawCircle(d.x, d.y, 3f, cuDac)
         val r = 4.5f
@@ -227,6 +308,12 @@ class TreeView @JvmOverloads constructor(
         } else {
             khung.inset(0.5f, 0.5f)
             c.drawRoundRect(khung, 9.5f, 9.5f, cuVienThe)
+        }
+
+        if (t.id in theChon) {
+            khung.set(t.x, t.y, t.x + w, t.y + h)
+            khung.inset(1f, 1f)
+            c.drawRoundRect(khung, 9f, 9f, cuVienChon)
         }
 
         // avatar tròn đường kính 36, chữ cái đầu của tên gọi (từ cuối)
