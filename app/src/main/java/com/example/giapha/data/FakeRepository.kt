@@ -604,4 +604,108 @@ class FakeRepository : Repository {
         quanHeChaMe.removeAll { it.idCon == idCon && it.idPhuHuynh == idPhuHuynh }
         return Kq.Ok(Unit)
     }
+
+    // ---------------- Quan hệ hôn nhân (GD-13) ----------------
+
+    private fun kiemTraNgayCuoi(ngay: java.time.LocalDate?, a: OThanhVien, b: OThanhVien): Kq.Loi? {
+        if (ngay == null) return null
+        if (ngay.isAfter(java.time.LocalDate.now()))
+            return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày cưới không thể ở tương lai")
+        for (p in listOf(a, b)) {
+            if (p.ngaySinh != null && ngay.isBefore(p.ngaySinh))
+                return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày cưới không thể trước ngày sinh của ${p.hoTen}")
+        }
+        return null
+    }
+
+    override fun honNhanCua(idO: Int): Kq<HonNhanCuaO> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenQuanTri(o.idKhongGian)?.let { return it }
+        val ds = honNhan.filter { it.idChong == idO || it.idVo == idO }
+            .sortedWith(compareBy({ it.thuTuHonNhan ?: Int.MAX_VALUE }, { it.id }))
+            .mapNotNull { h ->
+                layO(if (h.idChong == idO) h.idVo else h.idChong)?.let {
+                    DongHonNhan(h.id, it.idOThanhVien, it.hoTen, it.conSong, h.trangThai, h.ngayCoi, h.ngayLyHon, h.thuTuHonNhan)
+                }
+            }
+        return Kq.Ok(HonNhanCuaO(o, ds))
+    }
+
+    override fun timUngVienHonNhan(idO: Int, tuKhoa: String): Kq<List<KetQuaTim>> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenQuanTri(o.idKhongGian)?.let { return it }
+        val daNoi = honNhan.filter { it.idChong == idO || it.idVo == idO }
+            .map { if (it.idChong == idO) it.idVo else it.idChong }
+        return Kq.Ok(timTheoTen(o.idKhongGian, tuKhoa, daNoi.toSet() + idO))
+    }
+
+    override fun themHonNhan(idO: Int, idNguoiKia: Int, ngayCoi: java.time.LocalDate?, thuTu: Int): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenQuanTri(o.idKhongGian)?.let { return it }
+        val kia = layO(idNguoiKia)
+        if (kia == null || kia.idKhongGian != o.idKhongGian)
+            return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy người được chọn")
+        if (idNguoiKia == idO) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Không thể chọn chính người này")
+        if (honNhan.any {
+                (it.idChong == idO && it.idVo == idNguoiKia) || (it.idChong == idNguoiKia && it.idVo == idO)
+            }) return loi(LoiApp.DA_TON_TAI, "Hai người này đã có quan hệ hôn nhân")
+        if (thuTu < 1) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Thứ tự hôn nhân phải từ 1 trở lên")
+        kiemTraNgayCuoi(ngayCoi, o, kia)?.let { return it }
+
+        // Nam -> chồng, Nữ -> vợ; chưa rõ thì xét giới tính người kia (giống themO)
+        val oLaChong = when {
+            o.gioiTinh == GioiTinh.NAM -> true
+            o.gioiTinh == GioiTinh.NU -> false
+            kia.gioiTinh == GioiTinh.NAM -> false
+            else -> true
+        }
+        honNhan.add(
+            QHeHonNhan(
+                id = (honNhan.maxOfOrNull { it.id } ?: 0) + 1,
+                idChong = if (oLaChong) idO else idNguoiKia,
+                idVo = if (oLaChong) idNguoiKia else idO,
+                ngayCoi = ngayCoi,
+                thuTuHonNhan = thuTu
+            )
+        )
+        return Kq.Ok(Unit)
+    }
+
+    override fun suaHonNhan(
+        id: Int, ngayCoi: java.time.LocalDate?, trangThai: TrangThaiHonNhan,
+        ngayLyHon: java.time.LocalDate?, thuTu: Int
+    ): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val i = honNhan.indexOfFirst { it.id == id }
+        if (i < 0) return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy hôn nhân này")
+        val h = honNhan[i]
+        val chong = layO(h.idChong)
+        val vo = layO(h.idVo)
+        if (chong == null || vo == null) return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy hôn nhân này")
+        quyenQuanTri(chong.idKhongGian)?.let { return it }
+        if (thuTu < 1) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Thứ tự hôn nhân phải từ 1 trở lên")
+        kiemTraNgayCuoi(ngayCoi, chong, vo)?.let { return it }
+        val ly = if (trangThai == TrangThaiHonNhan.DA_LY_HON) ngayLyHon else null
+        if (ly != null) {
+            if (ly.isAfter(java.time.LocalDate.now()))
+                return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày ly hôn không thể ở tương lai")
+            if (ngayCoi != null && ly.isBefore(ngayCoi))
+                return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Ngày ly hôn không thể trước ngày cưới")
+        }
+        honNhan[i] = h.copy(ngayCoi = ngayCoi, trangThai = trangThai, ngayLyHon = ly, thuTuHonNhan = thuTu)
+        return Kq.Ok(Unit)
+    }
+
+    override fun xoaHonNhan(id: Int): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val h = honNhan.firstOrNull { it.id == id } ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy hôn nhân này")
+        val chong = layO(h.idChong) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy hôn nhân này")
+        quyenQuanTri(chong.idKhongGian)?.let { return it }
+        honNhan.removeAll { it.id == id }
+        return Kq.Ok(Unit)
+    }
+
 }

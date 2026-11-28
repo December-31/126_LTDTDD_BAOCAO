@@ -98,6 +98,23 @@ data class QuanHeChaMeCuaO(
     val con: List<DongQuanHeChaMe>
 )
 
+data class DongHonNhan(
+    val id: Int,
+    val idNguoi: Int,
+    val hoTen: String,
+    val conSong: Boolean,
+    val trangThai: TrangThaiHonNhan,
+    val ngayCoi: LocalDate?,
+    val ngayLyHon: LocalDate?,
+    val thuTu: Int?
+)
+
+/** Dữ liệu màn GD-13, đã sắp theo thứ tự hôn nhân. */
+data class HonNhanCuaO(
+    val o: OThanhVien,
+    val ds: List<DongHonNhan>
+)
+
 /**
  * Cửa duy nhất giữa màn hình và dữ liệu. Màn hình không đọc SampleData trực tiếp.
  * Hiện chạy bằng FakeRepository (bộ nhớ); sau này thay bằng bản gọi API.
@@ -151,4 +168,16 @@ interface Repository {
     fun suaQuanHeChaMe(idCon: Int, idPhuHuynh: Int, loai: LoaiQuanHe, ngayXacLap: LocalDate?): Kq<Unit>
     /** Chỉ gỡ dòng quan hệ, không xóa Ô nào. */
     fun xoaQuanHeChaMe(idCon: Int, idPhuHuynh: Int): Kq<Unit>
+    // ---- Quan hệ hôn nhân (GD-13) ----
+    /** Admin/Quản lý. Mọi cuộc hôn nhân của Ô (cả vai trò chồng lẫn vợ). */
+    fun honNhanCua(idO: Int): Kq<HonNhanCuaO>
+    /** Tìm người để kết hôn; đã loại Ô này và những người đã có hôn nhân với Ô này. */
+    fun timUngVienHonNhan(idO: Int, tuKhoa: String): Kq<List<KetQuaTim>>
+    /** Trạng thái mặc định là Đang kết hôn. Chặn: trùng cặp, thứ tự < 1, ngày cưới sai. */
+    fun themHonNhan(idO: Int, idNguoiKia: Int, ngayCoi: LocalDate?, thuTu: Int): Kq<Unit>
+    /** Không đổi được người. Ngày ly hôn chỉ giữ khi trạng thái là Đã ly hôn. Không đụng quan hệ cha/mẹ–con. */
+    fun suaHonNhan(id: Int, ngayCoi: LocalDate?, trangThai: TrangThaiHonNhan, ngayLyHon: LocalDate?, thuTu: Int): Kq<Unit>
+    /** Chỉ xóa dòng hôn nhân, không xóa Ô nào và không đụng quan hệ cha/mẹ–con. */
+    fun xoaHonNhan(id: Int): Kq<Unit>
+
 }

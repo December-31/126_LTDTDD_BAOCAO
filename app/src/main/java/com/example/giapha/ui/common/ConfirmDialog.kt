@@ -29,7 +29,7 @@ fun Context.showConfirmDialog(
 ) {
     val b = DialogConfirmBinding.inflate(LayoutInflater.from(this))
     b.tvTitle.text = title
-    b.tvMessage.text = message
+    b.tvMessage.visibility = if (message.isBlank()) android.view.View.GONE else android.view.View.VISIBLE
     b.btnCancel.text = cancelText
     b.btnConfirm.text = confirmText
     if (!destructive) {

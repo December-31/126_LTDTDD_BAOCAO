@@ -54,6 +54,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.person.MarriageActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.person.PersonFormActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
