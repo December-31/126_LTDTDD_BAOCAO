@@ -23,6 +23,7 @@ data class CauHinhCay(
     val thanhNgangTruocCon: Float = 32f,   // thanh ngang cách đỉnh thẻ con (nhóm hôn nhân)
     val thanhNgangMotCha: Float = 20f,     // thanh ngang của con chỉ có một cha/mẹ
     val thanhNgangNoiPhu: Float = 46f,     // thanh ngang của đường nối phụ (người có cha mẹ ở hai nhánh)
+    val buocNoiPhu: Float = 8f,            // mỗi mức đường nối phụ nằm cao hơn mức dưới nó bấy nhiêu
     val leTrai: Float = 88f,               // chừa chỗ cho dải "Đời n"
     val lePhai: Float = 24f,
     val dem: Float = 16f
@@ -154,7 +155,7 @@ private class Tinh(
     private val linksAll = quanHeChaMe
         .filter { it.idCon in ids && it.idPhuHuynh in ids && it.idCon != it.idPhuHuynh }
         .distinctBy { it.idCon to it.idPhuHuynh }
-    private val linksVis = linksAll.filter { it.hienThiLienKet }
+    private val linksVis = linksAll.filter { it.hienThiLienKet }          // chỉ QuanHeChaMe, theo quyết định
     private val marriages = honNhan
         .filter { it.idChong in ids && it.idVo in ids && it.idChong != it.idVo }
         .distinctBy { setOf(it.idChong, it.idVo) }
@@ -233,7 +234,7 @@ private class Tinh(
         return out
     }
 
-    /** Số đời tính theo MỌI dòng nối, kể cả dòng đang ẩn. */
+    /** Số đời tính theo MỌI dòng nối, kể cả dòng đang ẩn (QUYET_DINH 5.3). */
     private fun tinhDoi() {
         ids.forEach { doi[it] = 0 }
         val adjAll = adjacency(linksAll, marriages)
@@ -442,9 +443,39 @@ private class Tinh(
         // ---- các hàng
         val gMin = cum.minOf { doi[it]!! }
         val gMax = cum.maxOf { doi[it]!! }
-        fun khoangSau(g: Int) =
-            if (khois.any { it.nhieuHonNhan && doi[it.ms[0]] == g && it.cho.any { c -> c.con.isNotEmpty() } })
+
+        // Mức độ cao của đường nối phụ: các đường chồng nhau về chiều ngang thì ở mức khác nhau,
+        // các đường rời nhau dùng chung một mức. Mức 0 sát hàng con nhất.
+        fun xNguon(k: Khoi, c: Cho): Float = when {
+            !c.honNhanCho -> x[k.ms[c.chiSo]]!!
+            k.ms.size == 2 -> (x[k.ms[0]]!! + x[k.ms[1]]!!) / 2
+            else -> x[k.ms[c.chiSo]]!!
+        }
+        class Phu(val khoi: Khoi, val i: Int, val hang: Int, val xTrai: Float, val xPhai: Float)
+        val cacPhu = khois.flatMap { k ->
+            k.phu.map { (i, g) ->
+                val a = xNguon(g.khoi, g.cho)
+                val b = x[k.ms[i]]!!
+                Phu(k, i, doi[g.khoi.ms[0]]!!, minOf(a, b), maxOf(a, b))
+            }
+        }
+        val mucPhu = HashMap<Pair<Khoi, Int>, Int>()
+        val soMucPhu = HashMap<Int, Int>()
+        for ((hang, ds) in cacPhu.groupBy { it.hang }) {
+            val phaiCuoi = ArrayList<Float>()
+            for (p in ds.sortedWith(compareBy({ it.xTrai }, { it.xPhai }))) {
+                var m = phaiCuoi.indexOfFirst { it + ch.dem < p.xTrai }
+                if (m < 0) { phaiCuoi.add(p.xPhai); m = phaiCuoi.size - 1 } else phaiCuoi[m] = p.xPhai
+                mucPhu[p.khoi to p.i] = m
+            }
+            soMucPhu[hang] = phaiCuoi.size
+        }
+
+        fun khoangSau(g: Int): Float {
+            val co = if (khois.any { it.nhieuHonNhan && doi[it.ms[0]] == g && it.cho.any { c -> c.con.isNotEmpty() } })
                 ch.khoangCachHangDaHonNhan else ch.khoangCachHang
+            return co + ch.buocNoiPhu * maxOf(0, (soMucPhu[g] ?: 0) - 1)
+        }
 
         var yBang = yGoc
         if (tieuDe != null) {
@@ -478,10 +509,10 @@ private class Tinh(
             }
         }
 
-        fun thanhNgang(k: Khoi, c: Cho, phu: Boolean = false): Float? {
+        fun thanhNgang(k: Khoi, c: Cho, phu: Boolean = false, muc: Int = 0): Float? {
             val tiep = dinhHang[doi[k.ms[0]]!! + 1] ?: return null
             return tiep - when {
-                phu -> ch.thanhNgangNoiPhu
+                phu -> ch.thanhNgangNoiPhu + ch.buocNoiPhu * muc
                 c.honNhanCho -> ch.thanhNgangTruocCon
                 else -> ch.thanhNgangMotCha
             }
@@ -530,7 +561,7 @@ private class Tinh(
 
             // nơi gắn phụ (người có cha mẹ ở hai bên, ví dụ hôn nhân giữa hai nhánh)
             for ((i, g) in k.phu) {
-                val bar = thanhNgang(g.khoi, g.cho, phu = true) ?: continue
+                val bar = thanhNgang(g.khoi, g.cho, phu = true, muc = mucPhu[k to i] ?: 0) ?: continue
                 val (sx, sy) = xuatPhat(g.khoi, g.cho)
                 val cx = x[k.ms[i]]!!
                 val dut = dutCua(g)
