@@ -1,12 +1,11 @@
 package com.example.giapha.tree
 
-import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
-import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.OverScroller
 import com.example.giapha.model.OThanhVien
@@ -21,9 +20,8 @@ class TreeViewport @JvmOverloads constructor(
 ) : FrameLayout(context, attrs) {
 
     companion object {
-        val CAC_MUC = floatArrayOf(0.5f, 0.75f, 1f, 1.25f, 1.5f)
-        const val MUC_MAC_DINH = 2
-        private const val MS_ZOOM = 180L
+        const val HE_SO_NHO_NHAT = 0.5f
+        const val HE_SO_LON_NHAT = 1.5f
     }
 
     val cay = TreeView(context)
@@ -31,23 +29,23 @@ class TreeViewport @JvmOverloads constructor(
     /** Nhận id Ô khi người dùng chạm một thẻ. */
     var khiChamThe: ((Int) -> Unit)? = null
 
-    /** Gọi sau mỗi lần đổi mức: (hệ số mới, còn phóng to được, còn thu nhỏ được). */
-    var khiDoiZoom: ((Float, Boolean, Boolean) -> Unit)? = null
-
-    private var muc = MUC_MAC_DINH
-    val coTheLen: Boolean get() = muc < CAC_MUC.size - 1
-    val coTheXuong: Boolean get() = muc > 0
-
     private val mat = context.resources.displayMetrics.density
     private val cuon = OverScroller(context)
-    private var anhDong: ValueAnimator? = null
     private var duX = 0f
     private var duY = 0f
+
+    private val phongTo = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScale(d: ScaleGestureDetector): Boolean {
+            datHeSo(cay.heSo * d.scaleFactor, d.focusX, d.focusY)
+            return true
+        }
+    })
 
     private val cuChi = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean = true
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float): Boolean {
+            if (phongTo.isInProgress) return false
             duX += dx; duY += dy
             val ix = duX.toInt(); val iy = duY.toInt()
             duX -= ix; duY -= iy
@@ -56,6 +54,7 @@ class TreeViewport @JvmOverloads constructor(
         }
 
         override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
+            if (phongTo.isInProgress) return false
             cuon.fling(scrollX, scrollY, -vx.toInt(), -vy.toInt(), 0, toiDaX(), 0, toiDaY())
             postInvalidateOnAnimation()
             return true
@@ -73,35 +72,24 @@ class TreeViewport @JvmOverloads constructor(
 
     // ---- dữ liệu ----
 
+    /** Đặt cây mới. Vị trí cuộn và mức zoom hiện tại được giữ (chỉ kẹp lại trong phạm vi mới). */
     fun datDuLieu(kq: KetQuaBoCuc, o: List<OThanhVien>, cauHinh: CauHinhCay = CauHinhCay()) {
         cay.datDuLieu(kq, o, cauHinh)
-        scrollTo(0, 0)
+        cuonToi(scrollX, scrollY)
     }
 
     // ---- zoom ----
 
-    fun zoomLen() = datMuc(muc + 1)
-    fun zoomXuong() = datMuc(muc - 1)
-
-    private fun datMuc(m: Int) {
-        if (m < 0 || m >= CAC_MUC.size || m == muc) return
-        muc = m
+    /** Đặt mức zoom, giữ điểm (fx, fy) của khung nhìn đứng yên trên màn hình. */
+    private fun datHeSo(moi: Float, fx: Float, fy: Float) {
+        val cu = cay.heSo
+        val v = moi.coerceIn(HE_SO_NHO_NHAT, HE_SO_LON_NHAT)
+        if (v == cu) return
+        val tamX = (scrollX + fx) / (mat * cu)      // điểm giữ yên, tính theo dp
+        val tamY = (scrollY + fy) / (mat * cu)
         cuon.abortAnimation()
-        val tu = cay.heSo
-        val den = CAC_MUC[m]
-        val tamX = (scrollX + width / 2f) / (mat * tu)     // điểm giữa khung nhìn, tính theo dp
-        val tamY = (scrollY + height / 2f) / (mat * tu)
-        anhDong?.cancel()
-        anhDong = ValueAnimator.ofFloat(tu, den).apply {
-            duration = MS_ZOOM
-            addUpdateListener {
-                val v = it.animatedValue as Float
-                cay.heSo = v
-                cuonToi((tamX * mat * v - width / 2f).roundToInt(), (tamY * mat * v - height / 2f).roundToInt())
-            }
-            start()
-        }
-        khiDoiZoom?.invoke(den, coTheLen, coTheXuong)
+        cay.heSo = v
+        cuonToi((tamX * mat * v - fx).roundToInt(), (tamY * mat * v - fy).roundToInt())
     }
 
     // ---- cuộn ----
@@ -128,7 +116,9 @@ class TreeViewport @JvmOverloads constructor(
             duX = 0f; duY = 0f
             parent?.requestDisallowInterceptTouchEvent(true)
         }
-        return cuChi.onTouchEvent(e)
+        phongTo.onTouchEvent(e)
+        cuChi.onTouchEvent(e)
+        return true
     }
 
     // ---- đo và đặt vị trí: con luôn có kích thước thật của cây ----
