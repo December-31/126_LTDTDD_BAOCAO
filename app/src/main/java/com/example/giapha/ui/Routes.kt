@@ -10,7 +10,6 @@ import com.example.giapha.ui.profile.ProfileActivity
 import com.example.giapha.ui.space.JoinCodeActivity
 import com.example.giapha.ui.space.SpaceListActivity
 
-/** Mọi lối đi giữa các màn hình. Dòng ghi "TẠM" sẽ được thay khi làm tới màn đó. */
 object Routes {
 
     private fun Activity.tam(text: String) =
@@ -33,8 +32,12 @@ object Routes {
         activity.moMoi(LoginActivity::class.java)
     }
 
-    fun moKhongGian(activity: Activity, idKhongGian: Int) =
-        activity.tam("TẠM: mở cây GD-06 của không gian #$idKhongGian (bước 7)")
+    fun moKhongGian(activity: Activity, idKhongGian: Int) {
+        activity.startActivity(
+            Intent(activity, com.example.giapha.ui.tree.TreeDemoActivity::class.java)
+                .putExtra(com.example.giapha.ui.tree.TreeDemoActivity.EXTRA_ID_KHONG_GIAN, idKhongGian)
+        )
+    }
 
     fun moHoSo(activity: Activity) =
         activity.startActivity(Intent(activity, ProfileActivity::class.java))

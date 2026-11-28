@@ -420,11 +420,9 @@ private class Tinh(
 
     // ---------------------------------------------------------------- một cụm: xếp, tính hàng, sinh đường
 
-    private fun tieuDeCum(c: Set<Int>): String {
-        val tach = c.filter { id -> linksAll.any { !it.hienThiLienKet && it.idCon == id } }
-        val dau = (tach.ifEmpty { c.toList() }).minWithOrNull(compareBy({ doi[it]!! }, { it }))!!
-        return (if (tach.isNotEmpty()) "Nhánh tách: " else "Cụm rời: ") + byId[dau]!!.hoTen
-    }
+    /** Một không gian chỉ có một cây; mọi cụm nằm ngoài cây chính đều do quan hệ bị ẩn. */
+    @Suppress("UNUSED_PARAMETER")
+    private fun tieuDeCum(c: Set<Int>): String = "Quan hệ ẩn"
 
     /** Trả về y cuối cụm. */
     private fun xepCum(cum: Set<Int>, yGoc: Float, tieuDe: String?): Float {
