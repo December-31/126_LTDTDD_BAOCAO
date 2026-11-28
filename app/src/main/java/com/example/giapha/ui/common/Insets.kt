@@ -5,6 +5,7 @@ import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import android.view.ViewGroup
 
 /** Icon thanh trạng thái tối (dùng cho màn nền sáng, không có thanh nâu). */
 fun Activity.setLightStatusBar(light: Boolean) {
@@ -31,6 +32,18 @@ fun View.applyBottomInsetPadding() {
             WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
         )
         v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, base + bars.bottom)
+        insets
+    }
+}
+
+/** Đẩy nút nổi lên khỏi thanh điều hướng: cộng chiều cao thanh hệ thống vào lề dưới đang có. */
+fun View.applyBottomMarginInset() {
+    val base = (layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
+    ViewCompat.setOnApplyWindowInsetsListener(this) { v, insets ->
+        val bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+        val lp = v.layoutParams as ViewGroup.MarginLayoutParams
+        lp.bottomMargin = base + bottom
+        v.layoutParams = lp
         insets
     }
 }
