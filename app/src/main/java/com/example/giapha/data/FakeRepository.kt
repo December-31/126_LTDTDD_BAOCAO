@@ -290,7 +290,7 @@ class FakeRepository : Repository {
                 soCon = quanHeChaMe.count { it.idPhuHuynh == idO },
                 soThanhTuu = thanhTuu.count { it.idOThanhVien == idO },
                 soBinhLuan = binhLuan.count { it.idCuocDoi in idCD },
-                soTieuSu = idCD.size,
+                soTieuSu = cuocDoi.count { it.idOThanhVien == idO && !it.noiDung.isNullOrBlank() },
                 tachKhoiCayChinh = tach
             )
         )
@@ -729,6 +729,97 @@ class FakeRepository : Repository {
         val chong = layO(honNhan[i].idChong) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy hôn nhân này")
         quyenQuanTri(chong.idKhongGian)?.let { return it }
         honNhan[i] = honNhan[i].copy(hienThiLienKet = !an)
+        return Kq.Ok(Unit)
+    }
+    // ---------------- Tiểu sử và bình luận (GD-09) ----------------
+
+    private fun tenTaiKhoan(id: Int) = taiKhoan.firstOrNull { it.idTaiKhoan == id }?.tenHienThi ?: "Không rõ"
+
+    override fun tieuSuVaBinhLuan(idO: Int): Kq<TieuSuVaBinhLuan> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        val toi = vaiTroCuaToi(o.idKhongGian) ?: return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền xem không gian này")
+        val kg = khongGian.first { it.idKhongGian == o.idKhongGian }
+        if (kg.cheDoRiengTu && toi.vaiTro == VaiTro.KHACH_TAM)
+            return loi(LoiApp.KHONG_GIAN_RIENG_TU, "Không gian này đang ở chế độ riêng tư")
+
+        val cd = cuocDoi.firstOrNull { it.idOThanhVien == idO }
+        val noiDung = cd?.noiDung?.takeIf { it.isNotBlank() }
+        val tieuSu = if (cd != null && noiDung != null)
+            TieuSuO(noiDung, tenTaiKhoan(cd.idNguoiViet), cd.ngayCapNhat) else null
+        val ds = if (cd == null) emptyList() else binhLuan
+            .filter { it.idCuocDoi == cd.idCuocDoi }
+            .sortedWith(compareByDescending<BinhLuan> { it.ngayBinhLuan }.thenByDescending { it.idBinhLuan })
+            .map {
+                DongBinhLuan(
+                    id = it.idBinhLuan, idNguoi = it.idNguoiBinhLuan, tenNguoi = tenTaiKhoan(it.idNguoiBinhLuan),
+                    noiDung = it.noiDung, thoiGian = it.ngayBinhLuan,
+                    xoaDuoc = toi.vaiTro.laQuanTri || it.idNguoiBinhLuan == toi.idTaiKhoan
+                )
+            }
+        return Kq.Ok(TieuSuVaBinhLuan(o, toi, tieuSu, ds))
+    }
+
+    override fun luuTieuSu(idO: Int, noiDung: String): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        quyenQuanTri(o.idKhongGian)?.let { return it }
+        val nd = noiDung.trim()
+        if (nd.isEmpty()) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Vui lòng nhập nội dung tiểu sử")
+        val tk = nhanDang() ?: return loi(LoiApp.CHUA_DANG_NHAP, "Vui lòng đăng nhập lại")
+        val bay = LocalDateTime.now()
+        val i = cuocDoi.indexOfFirst { it.idOThanhVien == idO }
+        if (i < 0) {
+            cuocDoi.add(
+                CuocDoi(
+                    idCuocDoi = (cuocDoi.maxOfOrNull { it.idCuocDoi } ?: 0) + 1,
+                    idOThanhVien = idO, idNguoiViet = tk.idTaiKhoan, noiDung = nd, ngayCapNhat = bay
+                )
+            )
+        } else {
+            val cu = cuocDoi[i]
+            // Bản rỗng do bình luận tạo ra: người lưu đầu tiên là người viết. Sửa bản có sẵn: giữ người viết cũ.
+            cuocDoi[i] = cu.copy(
+                noiDung = nd, ngayCapNhat = bay,
+                idNguoiViet = if (cu.noiDung.isNullOrBlank()) tk.idTaiKhoan else cu.idNguoiViet
+            )
+        }
+        return Kq.Ok(Unit)
+    }
+
+    override fun themBinhLuan(idO: Int, noiDung: String): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val o = layO(idO) ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy thành viên này")
+        val toi = vaiTroCuaToi(o.idKhongGian) ?: return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền bình luận")
+        if (toi.vaiTro != VaiTro.ADMIN && toi.vaiTro != VaiTro.QUAN_LY && toi.vaiTro != VaiTro.THANH_VIEN)
+            return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền bình luận")
+        val nd = noiDung.trim()
+        if (nd.isEmpty()) return loi(LoiApp.DU_LIEU_KHONG_HOP_LE, "Vui lòng nhập nội dung bình luận")
+        val bay = LocalDateTime.now()
+        val cd = cuocDoi.firstOrNull { it.idOThanhVien == idO }
+            ?: CuocDoi(
+                idCuocDoi = (cuocDoi.maxOfOrNull { it.idCuocDoi } ?: 0) + 1,
+                idOThanhVien = idO, idNguoiViet = toi.idTaiKhoan, noiDung = null, ngayCapNhat = bay
+            ).also { cuocDoi.add(it) }
+        binhLuan.add(
+            BinhLuan(
+                idBinhLuan = (binhLuan.maxOfOrNull { it.idBinhLuan } ?: 0) + 1,
+                idCuocDoi = cd.idCuocDoi, idNguoiBinhLuan = toi.idTaiKhoan, noiDung = nd, ngayBinhLuan = bay
+            )
+        )
+        return Kq.Ok(Unit)
+    }
+
+    override fun xoaBinhLuan(idBinhLuan: Int): Kq<Unit> {
+        if (giaLapLoi) return matKetNoi()
+        val bl = binhLuan.firstOrNull { it.idBinhLuan == idBinhLuan }
+            ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy bình luận này")
+        val o = cuocDoi.firstOrNull { it.idCuocDoi == bl.idCuocDoi }?.let { layO(it.idOThanhVien) }
+            ?: return loi(LoiApp.KHONG_TIM_THAY, "Không tìm thấy bình luận này")
+        val toi = vaiTroCuaToi(o.idKhongGian) ?: return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền xóa bình luận này")
+        if (!toi.vaiTro.laQuanTri && bl.idNguoiBinhLuan != toi.idTaiKhoan)
+            return loi(LoiApp.KHONG_CO_QUYEN, "Bạn không có quyền xóa bình luận này")
+        binhLuan.removeAll { it.idBinhLuan == idBinhLuan }
         return Kq.Ok(Unit)
     }
 
